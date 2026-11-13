@@ -20,9 +20,12 @@ try:
     _mongo_ready = True
     print(f"✅ MongoDB 连接成功: {DB_NAME}")
 except Exception as e:
-    print(f"❌ MongoDB 连接失败: {e}")
+    print(f"❌ MongoDB 连接失败: {type(e).__name__}: {e}")
     print(f"   MONGODB_URI: {MONGO_URI.split('@')[0]}@...")
     print(f"   MONGODB_DB: {DB_NAME}")
+    print(f"   URI length: {len(MONGO_URI)}")
+    import os
+    print(f"   Render instance: {os.environ.get('RENDER', 'false')}")
     db = None
     _mongo_ready = False
 

@@ -92,6 +92,7 @@ def api_debug_mongo():
     return {
         'mongo_ready': db._mongo_ready,
         'db_name': db.DB_NAME,
+        'mongo_uri_preview': db.MONGO_URI.split('@')[0] + '@...',
         'collections': list(db.db.list_collection_names()) if db._mongo_ready else [],
     }
 
