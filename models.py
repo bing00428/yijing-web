@@ -23,15 +23,35 @@ else:
     MONGO_URI = f"{MONGO_URI}{_sep}retryWrites=true&w=majority&tlsAllowInvalidCertificates=true&serverSelectionTimeoutMS=10000"
 
 try:
-    mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=10000)
+    # 使用 pymongo 连接对象手动设置 SSL 参数
+    from urllib.parse import urlparse, urlencode, urlunparse
+    
+    parsed = urlparse(MONGO_URI)
+    # 解析现有查询参数
+    import urllib.parse
+    params = dict(urllib.parse.parse_qsl(parsed.query)) if parsed.query else {}
+    # 添加 TLS 兼容参数
+    params.update({
+        'retryWrites': 'true',
+        'w': 'majority',
+        'tls': 'true',
+        'tlsAllowInvalidCertificates': 'true',
+        'tlsInsecure': 'true',
+        'serverSelectionTimeoutMS': '10000',
+        'connectTimeoutMS': '10000',
+    })
+    # 重新构建连接字符串
+    new_query = urllib.parse.urlencode(params)
+    MONGO_URI = urlunparse(parsed._replace(query=new_query))
+    
+    mongo_client = MongoClient(MONGO_URI)
     mongo_client.admin.command('ping')
     db = mongo_client[DB_NAME]
     _mongo_ready = True
     print(f"✅ MongoDB 连接成功: {DB_NAME}")
 except Exception as e:
-    print(f"❌ MongoDB 连接失败: {type(e).__name__}: {str(e)[:300]}")
-    print(f"   MONGODB_URI: {MONGO_URI.split('@')[0]}@...")
-    print(f"   MONGODB_DB: {DB_NAME}")
+    print(f"❌ MongoDB 连接失败: {type(e).__name__}: {str(e)[:400]}")
+    print(f"   MONGO_URI params: {dict(urllib.parse.parse_qsl(urlparse(MONGO_URI).query))}")
     db = None
     _mongo_ready = False
 
