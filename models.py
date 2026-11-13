@@ -12,9 +12,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # Supabase 连接
 DB_PASSWORD = os.environ.get('SUPABASE_DB_PASSWORD', 'nDT5oOmUMxulOlX8')
 PROJECT_REF = os.environ.get('SUPABASE_PROJECT_REF', 'qkxzmmqhewhpflgyuoud')
-# 直连模式（绕过 pooler）
-DB_HOST = os.environ.get('SUPABASE_DB_HOST', f'{PROJECT_REF}.supabase.co')
-DB_PORT = int(os.environ.get('SUPABASE_DB_PORT', '5432'))
+# 使用 pooler + 6543 端口（Supabase 专用端口）
+DB_HOST = os.environ.get('SUPABASE_DB_HOST', 'aws-0-us-east-1.pooler.supabase.com')
+DB_PORT = int(os.environ.get('SUPABASE_DB_PORT', '6543'))
 DB_NAME = 'postgres'
 
 _conn_str = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user=postgres.{PROJECT_REF} password={DB_PASSWORD} connect_timeout=10"
