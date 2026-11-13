@@ -377,12 +377,11 @@ function renderCoinFinalResult() {
                 // 命卦解读
                 finalHtml += '<div class="mingua-section" style="background:rgba(255,183,77,0.06);border:1px solid rgba(255,183,77,0.2);border-radius:8px;padding:1rem;margin-top:1rem;">';
                 finalHtml += '<h4 style="color:#ffb74d;font-size:0.95rem;margin-bottom:0.5rem;">🔮 命卦解读（倪海厦）</h4>';
-                finalHtml += '<div id="coin-mingua-content" class="coin-mingua-content-container" style="display:flex;align-items:center;justify-content:center;min-height:3rem;color:var(--text-muted);">加载中...</div>';
+                finalHtml += '<div id="coin-mingua-content" style="display:flex;align-items:center;justify-content:center;min-height:3rem;color:var(--text-muted);">加载中...</div>';
                 finalHtml += '</div>';
                 showResult('coin-final-result', finalHtml);
-                showResult('coin-hex-display', finalHtml);
                 console.log('[Coin] Calling loadMinghuaData with:', hexName);
-                if (hexName) loadMinghuaData(hexName, ['coin-mingua-content', 'coin-mingua-content']);
+                if (hexName) loadMinghuaData(hexName, 'coin-mingua-content');
             });
         } else {
             finalHtml += '<div class="moving-info" style="color:var(--text-muted);text-align:center;">静卦，无动爻</div>';
@@ -390,12 +389,11 @@ function renderCoinFinalResult() {
             // 命卦解读
             finalHtml += '<div class="mingua-section" style="background:rgba(255,183,77,0.06);border:1px solid rgba(255,183,77,0.2);border-radius:8px;padding:1rem;margin-top:1rem;">';
             finalHtml += '<h4 style="color:#ffb74d;font-size:0.95rem;margin-bottom:0.5rem;">🔮 命卦解读（倪海厦）</h4>';
-            finalHtml += '<div id="coin-mingua-content" class="coin-mingua-content-container" style="display:flex;align-items:center;justify-content:center;min-height:3rem;color:var(--text-muted);">加载中...</div>';
+            finalHtml += '<div id="coin-mingua-content" style="display:flex;align-items:center;justify-content:center;min-height:3rem;color:var(--text-muted);">加载中...</div>';
             finalHtml += '</div>';
             showResult('coin-final-result', finalHtml);
-            showResult('coin-hex-display', finalHtml);
             console.log('[Coin] Calling loadMinghuaData with:', hexName);
-            if (hexName) loadMinghuaData(hexName, ['coin-mingua-content', 'coin-mingua-content']);
+            if (hexName) loadMinghuaData(hexName, 'coin-mingua-content');
         }
     });
 }
@@ -472,24 +470,22 @@ function renderYarrowFinalResult() {
                 // 命卦解读
                 finalHtml += '<div class="mingua-section" style="background:rgba(255,183,77,0.06);border:1px solid rgba(255,183,77,0.2);border-radius:8px;padding:1rem;margin-top:1rem;">';
                 finalHtml += '<h4 style="color:#ffb74d;font-size:0.95rem;margin-bottom:0.5rem;">🔮 命卦解读（倪海厦）</h4>';
-                finalHtml += '<div id="yarrow-mingua-content" class="yarrow-mingua-content-container" style="display:flex;align-items:center;justify-content:center;min-height:3rem;color:var(--text-muted);">加载中...</div>';
+                finalHtml += '<div id="yarrow-mingua-content" style="display:flex;align-items:center;justify-content:center;min-height:3rem;color:var(--text-muted);">加载中...</div>';
                 finalHtml += '</div>';
                 showResult('yarrow-final-result', finalHtml);
-                showResult('yarrow-hex-display', finalHtml);
                 console.log('[Yarrow] Calling loadMinghuaData with:', hexName);
-                if (hexName) loadMinghuaData(hexName, ['yarrow-mingua-content', 'yarrow-mingua-content']);
+                if (hexName) loadMinghuaData(hexName, 'yarrow-mingua-content');
             });
         } else {
             finalHtml += '<div class="moving-info" style="color:var(--text-muted);text-align:center;">静卦</div>';
             // 命卦解读
             finalHtml += '<div class="mingua-section" style="background:rgba(255,183,77,0.06);border:1px solid rgba(255,183,77,0.2);border-radius:8px;padding:1rem;margin-top:1rem;">';
             finalHtml += '<h4 style="color:#ffb74d;font-size:0.95rem;margin-bottom:0.5rem;">🔮 命卦解读（倪海厦）</h4>';
-            finalHtml += '<div id="yarrow-mingua-content" class="yarrow-mingua-content-container" style="display:flex;align-items:center;justify-content:center;min-height:3rem;color:var(--text-muted);">加载中...</div>';
+            finalHtml += '<div id="yarrow-mingua-content" style="display:flex;align-items:center;justify-content:center;min-height:3rem;color:var(--text-muted);">加载中...</div>';
             finalHtml += '</div>';
             showResult('yarrow-final-result', finalHtml);
-            showResult('yarrow-hex-display', finalHtml);
             console.log('[Yarrow] Calling loadMinghuaData with:', hexName);
-            if (hexName) loadMinghuaData(hexName, ['yarrow-mingua-content', 'yarrow-mingua-content']);
+            if (hexName) loadMinghuaData(hexName, 'yarrow-mingua-content');
         }
     });
 }
@@ -501,7 +497,6 @@ function doTimeDivination() {
     var day = parseInt(document.getElementById('time-day').value) || 1;
     var hour = parseInt(document.getElementById('time-hour').value) || 6;
     showLoading('time-result');
-    showLoading('time-hex-display');
     ajax('/api/time/divination', { year: year, month: month, day: day, hour: hour, minute: 0 }, function(json) {
         if (!json.success) { showResult('time-result', '<div class="error">起卦失败</div>'); showResult('time-hex-display', '<div class="error">起卦失败</div>'); return; }
         var d = json.data;
@@ -565,7 +560,6 @@ function doTimeDivination() {
 
         html += '</div>';
         showResult('time-result', html);
-        showResult('time-hex-display', html);
         trackAction('divination', 'time_divination', { year: year, month: month, day: day, hour: hour });
 
         // 加载命卦数据
@@ -575,44 +569,23 @@ function doTimeDivination() {
 
 /** 加载命卦数据
  * @param {string} hexName - 卦名
- * @param {string|string[]} [containerIds] - 命卦内容容器 ID（支持多个）
+ * @param {string} [containerId='mingua-content'] - 命卦内容容器 ID
  */
-function loadMinghuaData(hexName, containerIds) {
-    // 统一为数组格式
-    if (!Array.isArray(containerIds)) {
-        containerIds = containerIds ? [containerIds] : ['mingua-content'];
-    }
-    console.log('[Minghua] Loading data for:', hexName, 'containers:', containerIds);
-    // 调试：检查容器是否存在
-    containerIds.forEach(function(id) {
-        var byId = document.getElementById(id);
-        var byClass = document.querySelectorAll('.' + id + '-container');
-        console.log('[Minghua] Container', id, '- getElementById:', byId ? 'FOUND' : 'NOT FOUND', '- querySelectorAll:', byClass.length);
-    });
+function loadMinghuaData(hexName, containerId) {
+    containerId = containerId || 'mingua-content';
+    console.log('[Minghua] Loading data for:', hexName, 'container:', containerId);
     ajax('/api/mingua/lookup', { hexagram: hexName }, function(json) {
         console.log('[Minghua] API response:', JSON.stringify(json).substring(0, 200));
+        var container = document.getElementById(containerId);
+        if (!container) { console.warn('[Minghua] Container not found:', containerId); return; }
         if (!json.success || !json.data) {
-            // 所有容器都显示"暂无数据"
-            containerIds.forEach(function(id) {
-                var containers = document.querySelectorAll('.' + id + '-container');
-                if (containers.length === 0) containers = [document.getElementById(id)];
-                console.log('[Minghua] Setting empty for', id, ', found', containers.length, 'containers');
-                containers.forEach(function(c) {
-                    if (c) c.innerHTML = '<p style="color:var(--text-muted);">暂无命卦数据</p>';
-                });
-            });
+            container.innerHTML = '<p style="color:var(--text-muted);">暂无命卦数据</p>';
             return;
         }
         var m = json.data;
         console.log('[Minghua] Data keys:', Object.keys(m), 'xiantian len:', (m.xiantian || '').length);
         if (!m.xiantian && !m.houtian && !m.liunian) {
-            containerIds.forEach(function(id) {
-                var containers = document.querySelectorAll('.' + id + '-container');
-                if (containers.length === 0) containers = [document.getElementById(id)];
-                containers.forEach(function(c) {
-                    if (c) c.innerHTML = '<p style="color:var(--text-muted);">暂无命卦数据</p>';
-                });
-            });
+            container.innerHTML = '<p style="color:var(--text-muted);">暂无命卦数据</p>';
             return;
         }
         var html = '';
@@ -625,22 +598,8 @@ function loadMinghuaData(hexName, containerIds) {
         if (m.liunian) {
             html += '<div><b style="color:#ffb74d;font-size:0.9rem;">流年卦：</b><p style="color:var(--text);font-size:0.85rem;line-height:1.6;margin:0.25rem 0 0 0;">' + m.liunian + '</p></div>';
         }
-        // 更新所有容器（优先使用 class 选择器，兼容重复 ID）
-        containerIds.forEach(function(id) {
-            var containers = document.querySelectorAll('.' + id + '-container');
-            console.log('[Minghua] Updating', id, ', found', containers.length, 'containers via class');
-            if (containers.length === 0) {
-                var single = document.getElementById(id);
-                containers = single ? [single] : [];
-                console.log('[Minghua] Fallback to getElementById:', containers.length);
-            }
-            containers.forEach(function(c, idx) {
-                if (c) {
-                    console.log('[Minghua] Setting container', idx, 'length:', html.length);
-                    c.innerHTML = html;
-                }
-            });
-        });
+        container.innerHTML = html;
+        console.log('[Minghua] Content set, html length:', html.length);
     });
 }
 
