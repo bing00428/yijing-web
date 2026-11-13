@@ -39,6 +39,9 @@ from core import (
 # 导入完整卦象数据（含大象传、学术注释）
 from hexagram_data import HEXAGRAM_DATA
 
+# 导入命卦数据（倪海厦解读）
+from mingua_data import MINGUA_DATA
+
 # 导入数据库模块
 import models as db
 
@@ -399,6 +402,25 @@ def api_time_divination():
         'changed_lower': changed_lower,
     }
     return jsonify({'success': True, 'data': result})
+
+
+# ========== 命卦查询 ==========
+@app.route('/api/mingua/lookup', methods=['POST'])
+@require_auth
+def api_mingua_lookup():
+    """查询六十四卦命卦数据（倪海厦解读）"""
+    data = request.json or {}
+    hex_name = data.get('hexagram', '')
+    result = MINGUA_DATA.get(hex_name, {})
+    return jsonify({
+        'success': True,
+        'data': {
+            'hexagram': hex_name,
+            'xiantian': result.get('xiantian', ''),
+            'houtian': result.get('houtian', ''),
+            'liunian': result.get('liunian', ''),
+        }
+    })
 
 
 # ========== 六十四卦查询 ==========

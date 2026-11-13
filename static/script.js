@@ -509,10 +509,46 @@ function doTimeDivination() {
         html += generateTimeDivinationInterpretation(d);
         html += '</div>';
 
+        // 命卦解读（倪海厦解读）
+        html += '<div class="mingua-section" style="background:rgba(255,183,77,0.06);border:1px solid rgba(255,183,77,0.2);border-radius:8px;padding:1rem;margin-top:1rem;">';
+        html += '<h4 style="color:#ffb74d;font-size:0.95rem;margin-bottom:0.5rem;">🔮 命卦解读（倪海厦）</h4>';
+        html += '<div id="mingua-content" style="display:flex;align-items:center;justify-content:center;min-height:3rem;color:var(--text-muted);">加载中...</div>';
+        html += '</div>';
+
         html += '</div>';
         showResult('time-result', html);
         showResult('time-hex-display', html);
         trackAction('divination', 'time_divination', { year: year, month: month, day: day, hour: hour });
+
+        // 加载命卦数据
+        loadMinghuaData(d.name);
+    });
+}
+
+/** 加载命卦数据 */
+function loadMinghuaData(hexName) {
+    ajax('/api/mingua/lookup', { hexagram: hexName }, function(json) {
+        var container = document.getElementById('mingua-content');
+        if (!json.success || !json.data) {
+            container.innerHTML = '<p style="color:var(--text-muted);">暂无命卦数据</p>';
+            return;
+        }
+        var m = json.data;
+        if (!m.xiantian && !m.houtian && !m.liunian) {
+            container.innerHTML = '<p style="color:var(--text-muted);">暂无命卦数据</p>';
+            return;
+        }
+        var html = '';
+        if (m.xiantian) {
+            html += '<div style="margin-bottom:0.75rem;"><b style="color:#ffb74d;font-size:0.9rem;">先天卦：</b><p style="color:var(--text);font-size:0.85rem;line-height:1.6;margin:0.25rem 0 0 0;">' + m.xiantian + '</p></div>';
+        }
+        if (m.houtian) {
+            html += '<div style="margin-bottom:0.75rem;"><b style="color:#ffb74d;font-size:0.9rem;">后天卦：</b><p style="color:var(--text);font-size:0.85rem;line-height:1.6;margin:0.25rem 0 0 0;">' + m.houtian + '</p></div>';
+        }
+        if (m.liunian) {
+            html += '<div><b style="color:#ffb74d;font-size:0.9rem;">流年卦：</b><p style="color:var(--text);font-size:0.85rem;line-height:1.6;margin:0.25rem 0 0 0;">' + m.liunian + '</p></div>';
+        }
+        container.innerHTML = html;
     });
 }
 
