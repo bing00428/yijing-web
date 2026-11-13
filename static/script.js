@@ -341,14 +341,17 @@ function updateCoinUI() {
 }
 
 function renderCoinFinalResult() {
+    console.log('[Coin] renderCoinFinalResult called, yaoValues:', coinYaoValues);
     var binary = 0;
     for (var i = 0; i < 6; i++) { if (coinYaoValues[i] >= 7) binary |= (1 << i); }
     var upperName = binaryToTrigram((binary >> 3) & 0b111), lowerName = binaryToTrigram(binary & 0b111);
+    console.log('[Coin] Trigrams:', upperName, lowerName);
     var hexName = null;
     var hasMovingLines = coinMovingLines.length > 0;
     var finalHtml = '';
     
     ajax('/api/hexagram/search', { keyword: upperName + lowerName }, function(json) {
+        console.log('[Coin] Hexagram search result:', json);
         if (json.data && json.data.name) {
             var hx = json.data;
             hexName = hx.name;
@@ -360,6 +363,7 @@ function renderCoinFinalResult() {
             hexName = upperName + lowerName;
             finalHtml += '<div class="hex-display"><div class="hex-name-display" style="font-size:2rem;color:var(--gold);">' + upperName + '上' + lowerName + '下</div></div>';
         }
+        console.log('[Coin] Final hexName:', hexName);
         if (hasMovingLines) {
             finalHtml += '<div class="moving-info" style="color:var(--accent);text-align:center;margin:0.5rem 0;">动爻：第' + coinMovingLines.join('、') + '爻</div>';
             finalHtml += renderYaoLines(coinYaoValues, coinMovingLines);
@@ -377,6 +381,7 @@ function renderCoinFinalResult() {
                 finalHtml += '</div>';
                 showResult('coin-final-result', finalHtml);
                 showResult('coin-hex-display', finalHtml);
+                console.log('[Coin] Calling loadMinghuaData with:', hexName);
                 if (hexName) loadMinghuaData(hexName, 'coin-mingua-content');
             });
         } else {
@@ -389,6 +394,7 @@ function renderCoinFinalResult() {
             finalHtml += '</div>';
             showResult('coin-final-result', finalHtml);
             showResult('coin-hex-display', finalHtml);
+            console.log('[Coin] Calling loadMinghuaData with:', hexName);
             if (hexName) loadMinghuaData(hexName, 'coin-mingua-content');
         }
     });
