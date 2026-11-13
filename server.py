@@ -95,7 +95,7 @@ def api_debug_db():
             host=db.DB_HOST,
             port=db.DB_PORT,
             dbname=db.DB_NAME,
-            user='postgres.' + db.PROJECT_REF,
+            user='postgres',
             password=db.DB_PASSWORD,
             connect_timeout=5
         )
