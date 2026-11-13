@@ -748,21 +748,43 @@ def api_bagua_detail():
 
 
 # ========== 二十八星宿 ==========
+# 二十八宿五行到四象的映射
+WU_XING_TO_SI_XIANG = {
+    '金': '青龙',
+    '木': '青龙',
+    '水': '玄武',
+    '火': '朱雀',
+    '土': '白虎',
+}
+
+
 @app.route('/api/28xiu/calculate', methods=['POST'])
 @require_auth
 def api_28_xiu():
-    """二十八星宿"""
+    """二十八星宿查询"""
     data = request.json or {}
     xiang_filter = data.get('xiang_filter', '')
     jiux_filter = data.get('jiux_filter', '')
     results = []
 
-    for xi in ER_SHIBA_XIU:
-        if xiang_filter and xi.get('相', '') != xiang_filter:
+    # 五行筛选映射：金/木→青龙, 水→玄武, 火→朱雀, 土→白虎
+    si_xiang_target = None
+    if xiang_filter and xiang_filter in WU_XING_TO_SI_XIANG:
+        si_xiang_target = WU_XING_TO_SI_XIANG[xiang_filter]
+
+    for xing_name, xi in ER_SHIBA_XIU.items():
+        if si_xiang_target and xi.get('象', '') != si_xiang_target:
             continue
-        if jiux_filter and xi.get('九星', '') != jiux_filter:
+        if jiux_filter and xi.get('星神', '') != jiux_filter:
             continue
-        results.append(xi)
+        results.append({
+            'name': xing_name,
+            'xiang': xi.get('象', ''),
+            'jiux': xi.get('星神', ''),
+            'jixiong': xi.get('吉凶', ''),
+            'desc': xi.get('含义', ''),
+            'good': xi.get('占断', ''),
+        })
 
     return jsonify({'success': True, 'data': results})
 
