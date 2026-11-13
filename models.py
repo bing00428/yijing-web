@@ -27,6 +27,7 @@ try:
         'w': 'majority',
         'tls': 'true',
         'tlsAllowInvalidCertificates': 'true',
+        'tlsMaxVersion': '1.2',
         'serverSelectionTimeoutMS': '10000',
         'connectTimeoutMS': '10000',
     })
