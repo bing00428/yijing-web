@@ -12,13 +12,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # Supabase 连接
 DB_PASSWORD = os.environ.get('SUPABASE_DB_PASSWORD', 'nDT5oOmUMxulOlX8')
 PROJECT_REF = os.environ.get('SUPABASE_PROJECT_REF', 'qkxzmmqhewhpflgyuoud')
-# 直连模式（绕过 pooler 租户识别问题）
-DB_HOST = os.environ.get('SUPABASE_DB_HOST', f'db.{PROJECT_REF}.supabase.co')
+# 强制使用 pooler 端点（忽略环境变量中的直连地址）
+DB_HOST = os.environ.get('SUPABASE_DB_HOST', 'aws-0-us-east-1.pooler.supabase.com')
 DB_PORT = int(os.environ.get('SUPABASE_DB_PORT', '5432'))
 DB_NAME = 'postgres'
 
-# Supabase 直连格式（ipv4only 避免 IPv6 问题）
-_conn_str = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user=postgres password={DB_PASSWORD} connect_timeout=10 sslmode=require options='-c ipv4=on'"
+_conn_str = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user=postgres password={DB_PASSWORD} connect_timeout=10 sslmode=require"
 
 _db_ready = False
 _conn = None
@@ -27,12 +26,15 @@ _cursor = None
 
 def _get_conn():
     """获取数据库连接"""
+    import socket
     global _conn, _db_ready
     if _conn is None:
         try:
-            # 使用 pooler 并通过 options 传递 external_id
+            # 强制 IPv4 解析
+            addrinfo = socket.getaddrinfo(DB_HOST, DB_PORT, socket.AF_INET, socket.SOCK_STREAM)
+            ipv4_addr = addrinfo[0][4][0]
             _conn = psycopg2.connect(
-                host=DB_HOST,
+                hostaddr=ipv4_addr,
                 port=DB_PORT,
                 dbname=DB_NAME,
                 user='postgres',
@@ -43,7 +45,7 @@ def _get_conn():
             )
             _conn.autocommit = True
             _db_ready = True
-            print("✅ Supabase 连接成功")
+            print("✅ Supabase 连接成功 (" + ipv4_addr + ")")
         except Exception as e:
             print(f"❌ Supabase 连接失败: {type(e).__name__}: {str(e)[:300]}")
             _db_ready = False
