@@ -458,15 +458,162 @@ function doTimeDivination() {
         if (!json.success) { showResult('time-result', '<div class="error">起卦失败</div>'); showResult('time-hex-display', '<div class="error">起卦失败</div>'); return; }
         var d = json.data;
         var html = '<div class="hex-display">';
+
+        // 卦名
         html += '<div class="hex-name-display" style="font-size:2rem;color:var(--gold);">' + (d.name || '起卦中') + '</div>';
         if (d.upper && d.lower) html += '<div class="hex-detail-display">上' + trigramSymbol(d.upper) + d.upper + ' 下' + trigramSymbol(d.lower) + d.lower + '</div>';
-        if (d.judgment) html += '<div class="hex-judgment-display" style="background:rgba(212,168,67,0.1);border:1px solid var(--gold);border-radius:8px;padding:1rem;margin:1rem 0;">卦辞："' + d.judgment + '"</div>';
-        if (d.moving_yao) html += '<div class="moving-info" style="color:var(--accent);text-align:center;">动爻：第' + d.moving_yao + '爻</div>';
+
+        // 卦辞
+        if (d.judgment) {
+            html += '<div class="hex-judgment-display" style="background:rgba(212,168,67,0.1);border:1px solid var(--gold);border-radius:8px;padding:1rem;margin:1rem 0;">';
+            html += '<h4 style="color:var(--gold);font-size:0.95rem;margin-bottom:0.5rem;">卦辞</h4>';
+            html += '<p style="color:var(--text);font-size:0.9rem;line-height:1.6;">"' + d.judgment + '"</p>';
+            html += '</div>';
+        }
+
+        // 大象传
+        if (d.xiang_comment) {
+            html += '<div class="hex-judgment-display" style="background:rgba(168,130,255,0.08);border:1px solid rgba(168,130,255,0.3);border-radius:8px;padding:1rem;margin:1rem 0;">';
+            html += '<h4 style="color:#a882ff;font-size:0.95rem;margin-bottom:0.5rem;">象曰</h4>';
+            html += '<p style="color:var(--text);font-size:0.9rem;line-height:1.6;">' + d.xiang_comment + '</p>';
+            html += '</div>';
+        }
+
+        // 动爻 + 爻辞
+        if (d.moving_yao) {
+            html += '<div class="moving-info" style="color:var(--accent);text-align:center;margin-bottom:0.5rem;">动爻：第' + d.moving_yao + '爻（' + (d.yao_name || '') + '）</div>';
+            if (d.yao_text) {
+                html += '<div class="hex-judgment-display" style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:1rem;margin:1rem 0;">';
+                html += '<h4 style="color:#fbbf24;font-size:0.95rem;margin-bottom:0.5rem;">' + (d.yao_name || '动爻') + ' 爻辞</h4>';
+                html += '<p style="color:var(--text);font-size:0.9rem;line-height:1.6;margin-bottom:0.5rem;">"' + d.yao_text + '"</p>';
+                if (d.yao_note) {
+                    html += '<p style="color:var(--text-muted);font-size:0.85rem;line-height:1.5;font-style:italic;">' + d.yao_note + '</p>';
+                }
+                html += '</div>';
+            }
+        }
+
+        // 变卦
+        if (d.changed_name && d.changed_name !== d.name) {
+            html += '<div class="changed-hex" style="background:rgba(78,204,163,0.1);border:1px solid var(--success);border-radius:8px;padding:1rem;margin-top:1rem;">';
+            html += '<h3 style="color:var(--success);">变卦：' + d.changed_name + '</h3>';
+            if (d.changed_upper && d.changed_lower) {
+                html += '<div style="color:var(--text);font-size:0.9rem;margin-top:0.5rem;">上' + trigramSymbol(d.changed_upper) + d.changed_upper + ' 下' + trigramSymbol(d.changed_lower) + d.changed_lower + '</div>';
+            }
+            html += '</div>';
+        }
+
+        // 白话解析（动态生成）
+        html += '<div style="background:rgba(78,204,163,0.06);border:1px solid rgba(78,204,163,0.2);border-radius:8px;padding:1rem;margin-top:1rem;">';
+        html += '<h4 style="color:var(--success);font-size:0.95rem;margin-bottom:0.5rem;">💡 白话解析</h4>';
+        html += generateTimeDivinationInterpretation(d);
+        html += '</div>';
+
         html += '</div>';
         showResult('time-result', html);
         showResult('time-hex-display', html);
         trackAction('divination', 'time_divination', { year: year, month: month, day: day, hour: hour });
     });
+}
+
+/** 生成时间起卦白话解析 */
+function generateTimeDivinationInterpretation(d) {
+    var lines = [];
+
+    // 总体判断
+    var judgment_meaning = getJudgmentMeaning(d.name, d.judgment);
+    lines.push('<p style="color:var(--text);font-size:0.9rem;line-height:1.7;margin-bottom:0.5rem;"><b>【总体】</b>' + judgment_meaning + '</p>');
+
+    // 动爻解读
+    if (d.yao_text && d.yao_name) {
+        var yao_meaning = getYaoInterpretation(d.moving_yao, d.yao_text, d.name);
+        lines.push('<p style="color:var(--text);font-size:0.9rem;line-height:1.7;margin-bottom:0.5rem;"><b>【动爻提示】</b>第' + d.moving_yao + '爻（' + d.yao_name + '）："' + d.yao_text + '" —— ' + yao_meaning + '</p>');
+    }
+
+    // 变卦提示
+    if (d.changed_name && d.changed_name !== d.name) {
+        lines.push('<p style="color:var(--text);font-size:0.9rem;line-height:1.7;margin-bottom:0.5rem;"><b>【发展趋势】</b>事情将向<b>' + d.changed_name + '</b>的方向发展，建议顺势而为。</p>');
+    }
+
+    return lines.join('');
+}
+
+/** 卦辞白话解释 */
+function getJudgmentMeaning(name, judgment) {
+    var meanings = {
+        '乾为天': '元亨利贞表示大吉大利。天道刚健，适合积极行动，但需坚守正道。',
+        '坤为地': '柔顺包容，适合以静制动。做事要脚踏实地，顺应自然。',
+        '水雷屯': '起始艰难，但充满生机。好比草木破土而出，需要耐心培育。',
+        '山水蒙': '启蒙之象，宜虚心求学。此时不明，需要请教有识之士。',
+        '水天需': '耐心等待时机。前方有困难，但只要守正不躁，终能成功。',
+        '天水讼': '容易发生争执，宜退让化解。做事要谨慎，避免冲突升级。',
+        '地水师': '需要组织和纪律。凡事要有人领导，众人同心才能成事。',
+        '水地比': '亲密辅佐之象，利于合作交友。与人和睦相处，可得助力。',
+        '风天小畜': '力量尚小，宜蓄积准备。暂时不宜大举行动，先做好基础。',
+        '天泽履':  '如履薄冰，小心行事。虽然处境有风险，但守正可安。',
+        '地天泰': '通达安泰之象，吉祥。上下和谐，事事顺利，把握好运。',
+        '天地否': '闭塞不通，宜守不宜进。此时运势不佳，耐心等待转机。',
+        '天火同人': '志同道合，团结协作。与人合作可成大事，光明正大。',
+        '火天大有': '丰收大有，运势极佳。顺天依时，大有所获。',
+        '地山谦': '谦虚受益，满招损。保持谦逊态度，必有福报。',
+        '雷地豫': '安逸喜悦，顺势而为。把握良机，可以有所作为。',
+        '泽雷随': '随机应变，顺势而行。不要固执己见，灵活应对。',
+        '山风蛊': '整治积弊之时。事情有败坏，需要大刀阔斧改革。',
+        '地泽临': '居高临下，指导他人。运势上升，可大展宏图。',
+        '风泽中孚': '诚信为本，以诚待人。内心真诚，可以感化他人。',
+        '雷风恒': '持之以恒，持之以恒。做事要有恒心，不可三心二意。',
+        '天山遁': '退避隐居，明哲保身。小人当道，暂时退让为佳。',
+        '雷天大壮': '气势壮盛，不可妄动。虽然力量强大，但要守法度。',
+        '泽天夬': '果断决断，清除小人。当机立断，不可犹豫。',
+        '坤为地': '柔顺包容，宜静守。以退为进，等待时机。',
+        '兑为泽': '喜悦和悦，利于交往。心情愉悦，人际关系和谐。',
+        '离为火': '光明附丽，依附正道。如日中天，但要懂得收敛。',
+        '震为雷': '震动惊恐，但可无咎。遇事不惊，处变不惊。',
+        '巽为风': '柔顺渗透，循序渐进。如风无孔不入，以柔克刚。',
+        '坎为水': '重重险阻，但可通行。身处险境，要坚守本心。',
+        '艮为山': '止步静止，安于本位。该停则停，不可强求。',
+        '水火既济': '事情已成，但要防衰。成功之后要居安思危。',
+        '火水未济': '事犹未成，但可努力。尚未成功，但前景可期。'
+    };
+    if (meanings[name]) return meanings[name];
+    // 通用解释
+    if (judgment && judgment.length > 10) {
+        return '此卦卦辞为"' + judgment.slice(0, 20) + '..."，需要结合具体问题来理解。建议静心思考卦辞含义。';
+    }
+    return '此卦需要结合您所问之事来解读。建议诚心静思，体会卦象深意。';
+}
+
+/** 动爻白话解读 */
+function getYaoInterpretation(yaoNum, yaoText, hexName) {
+    // 常见爻辞的快速解释
+    var yaoInterp = {
+        '潜龙，勿用': '时机未到，宜韬光养晦，不要急于行动。',
+        '见龙在田': '才华初显，利于结交贵人，展现自己。',
+        '利见大人': '有贵人相助，可寻求帮助或展示才华。',
+        '君子终日乾乾': '要勤奋不懈，早晚警惕，虽然有风险但最终无害。',
+        '或跃在渊': '处于进退之间，可以大胆尝试，没有风险。',
+        '飞龙在天': '时机成熟，大展宏图，利见贵人。',
+        '亢龙有悔': '高处不胜寒，过刚易折，要懂得适可而止。',
+        '履霜，坚冰至': '事物发展有征兆，要见微知著，提前防范。',
+        '黄裳，元吉': '谦逊低调可得大吉，位置合适自然顺利。',
+        '突如其来如': '事情突然变化，要从容应对，不要惊慌。'
+    };
+    if (yaoInterp[yaoText]) return yaoInterp[yaoText];
+
+    // 根据爻位给出通用建议
+    var positions = ['初爻','二爻','三爻','四爻','五爻','上爻'];
+    var suggestions = [
+        '事情刚开始，要打好基础，不可操之过急。',
+        '处于发展阶段，要稳扎稳打，把握方向。',
+        '处于关键转折期，要谨慎行事，警惕风险。',
+        '已进入上层阶段，要审时度势，灵活应对。',
+        '处于最佳位置，可大展手脚，但勿骄傲。',
+        '事物发展到尽头，要考虑退路或转变方向。'
+    ];
+    if (yaoNum >= 1 && yaoNum <= 6) {
+        return positions[yaoNum-1] + '提示：' + suggestions[yaoNum-1];
+    }
+    return '此爻提示您需要关注当前所处阶段的特殊含义。';
 }
 
 // ========== 六十四卦查询 ==========

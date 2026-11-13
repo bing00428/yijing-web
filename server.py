@@ -12,7 +12,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 from core import (
     TRIGRAMS, HEXAGRAMS, NAJIA, HEXAGRAM_LINES,
     toss_coins, toss_single_coin, yarrow_stalk, yarrow_single, time_divination,
-    find_hexagram, search_hexagrams, get_changed_hexagram,
+    find_hexagram, search_hexagrams, get_changed_hexagram, binary_to_trigrams,
+)
+
+# 导入完整卦象数据（含大象传、学术注释）
+from hexagram_data import HEXAGRAM_DATA
     xing_relationship, xing_strength, get_xing_relationship_detail,
     ba_zhai_directions, lookup_trigram_by_dir,
     get_mingben_wuxing, calc_benming_wuxing_strength,
@@ -230,7 +234,7 @@ def api_yarrow():
 @app.route('/api/time/divination', methods=['POST'])
 @require_auth
 def api_time_divination():
-    """时间起卦"""
+    """时间起卦，返回完整卦象数据（含爻辞、大象传、变卦）"""
     data = request.json or {}
     year = data.get('year', 2025)
     month = data.get('month', 1)
@@ -241,16 +245,80 @@ def api_time_divination():
     upper_name, lower_name = time_divination(year, month, day, hour_dizhi_num)
     total = year + month + day + hour_dizhi_num
     moving_yao = (total % 6) if total % 6 > 0 else 6
-    # Look up hexagram
+
+    # 查找完整卦象数据
     hex_result = find_hexagram(upper_name, lower_name)
+    hex_name = hex_result['name'] if hex_result else f'{upper_name}{lower_name}'
+
+    # 从 HEXAGRAM_DATA 获取大象传等完整信息
+    hx_data = HEXAGRAM_DATA.get(hex_name, {})
+    xiang_comment = hx_data.get('xiang_comment', '')
+    line_types = hx_data.get('line_type', [])
+    line_notes = hx_data.get('line_note', [])
+
+    # 获取动爻的爻辞
+    yao_names = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻']
+    yao_text = ''
+    yao_name = ''
+    yao_note = ''
+    lines_data = HEXAGRAM_LINES.get(hex_name, [])
+    if moving_yao <= len(lines_data):
+        yao_text = lines_data[moving_yao - 1]
+    if moving_yao <= len(yao_names):
+        yao_name = yao_names[moving_yao - 1]
+    if moving_yao <= len(line_types):
+        yao_name = line_types[moving_yao - 1]
+    if moving_yao <= len(line_notes):
+        yao_note = line_notes[moving_yao - 1]
+
+    # 计算变卦
+    changed_name = ''
+    changed_upper = ''
+    changed_lower = ''
+    changed_hex = None
+    if moving_yao:
+        # 根据动爻计算变卦：阳变阴，阴变阳
+        changed_binary = 0
+        for i in range(6):
+            if i == moving_yao - 1:
+                # 动爻：阴阳互换
+                changed_binary |= (1 - (1 << i) & 1) << i
+            else:
+                # 非动爻保持不变
+                if i < len(lines_data) and lines_data[i]:
+                    changed_binary |= (1 << i)
+        # 更简单的计算：获取当前爻值
+        yao_values = [0] * 6
+        for i in range(6):
+            if i < len(lines_data) and lines_data[i]:
+                yao_values[i] = 1  # 阳
+            else:
+                yao_values[i] = 0  # 阴
+        # 动爻翻转
+        yao_values[moving_yao - 1] = 1 - yao_values[moving_yao - 1]
+        changed_binary = sum(v << i for i, v in enumerate(yao_values))
+        cu, cl = binary_to_trigrams(changed_binary)
+        changed_hex = find_hexagram(cu, cl)
+        if changed_hex:
+            changed_name = changed_hex['name']
+            changed_upper = changed_hex['upper']
+            changed_lower = changed_hex['lower']
+
     result = {
         'upper': upper_name,
         'lower': lower_name,
         'moving_yao': moving_yao,
-        'name': hex_result['name'] if hex_result else upper_name + lower_name,
+        'name': hex_name,
         'judgment': hex_result.get('judgment', '') if hex_result else '',
         'upper_trigram': hex_result.get('upper', '') if hex_result else upper_name,
         'lower_trigram': hex_result.get('lower', '') if hex_result else lower_name,
+        'xiang_comment': xiang_comment,
+        'yao_name': yao_name,
+        'yao_text': yao_text,
+        'yao_note': yao_note,
+        'changed_name': changed_name,
+        'changed_upper': changed_upper,
+        'changed_lower': changed_lower,
     }
     return jsonify({'success': True, 'data': result})
 
