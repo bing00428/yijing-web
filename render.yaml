@@ -12,6 +12,8 @@ run:
       value: 3.11.0
     - key: SUPABASE_PROJECT_REF
       value: qkxzmmqhewhpflgyuoud
+    - key: SUPABASE_ANON_KEY
+      sync: false
     - key: SUPABASE_DB_PASSWORD
       sync: false
     - key: SUPABASE_DB_HOST
