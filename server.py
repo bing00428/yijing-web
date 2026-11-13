@@ -229,25 +229,41 @@ def api_admin_users():
 @admin_required
 def api_admin_recent_actions():
     """管理后台全站最近行为记录"""
+    from datetime import datetime
     limit = request.args.get('limit', 50, type=int)
-    actions = db._query('user_actions', '*', order='created_at.desc', limit=limit)
-    
-    results = []
-    for a in actions:
-        uid = a.get('user_id')
-        username = 'unknown'
-        if uid:
-            user_data = db._query('users', 'username', {'id': ('eq', uid)})
-            if user_data:
-                username = user_data[0].get('username', 'unknown')
+    try:
+        actions = db._query('user_actions', '*', order='created_at.desc', limit=limit)
         
-        r = dict(a)
-        r['username'] = username
-        if r.get('created_at'):
-            r['created_at'] = r['created_at'].strftime('%Y-%m-%d %H:%M:%S')
-        results.append(r)
-    
-    return jsonify({'success': True, 'data': results})
+        results = []
+        for a in actions:
+            uid = a.get('user_id')
+            username = 'unknown'
+            if uid:
+                user_data = db._query('users', 'username', {'id': ('eq', uid)})
+                if user_data:
+                    username = user_data[0].get('username', 'unknown')
+            
+            r = dict(a)
+            r['username'] = username
+            if r.get('created_at'):
+                try:
+                    ca = r['created_at']
+                    if isinstance(ca, str):
+                        ca = ca.replace('Z', '')
+                    created = datetime.fromisoformat(ca)
+                    r['created_at'] = created.strftime('%Y-%m-%d %H:%M:%S')
+                except (ValueError, TypeError):
+                    pass
+            results.append(r)
+        
+        return jsonify({'success': True, 'data': results})
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 
 @app.route('/api/admin/user/<int:user_id>', methods=['GET'])
