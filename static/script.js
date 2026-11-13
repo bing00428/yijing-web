@@ -90,6 +90,7 @@ function ajax(url, data, callback) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data || {}),
+        credentials: "same-origin",
     }).then(function(resp) { return resp.json(); })
       .then(function(json) { callback(json); })
       .catch(function(err) { callback({ success: false, error: err.message }); });
