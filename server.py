@@ -130,41 +130,88 @@ def api_admin_session():
 @admin_required
 def api_admin_overview():
     """管理后台总览数据"""
-    conn = db.get_db()
-    # 总用户数
-    total_users = conn.execute("SELECT COUNT(*) as cnt FROM users").fetchone()['cnt']
-    # 总行为数
-    total_actions = conn.execute("SELECT COUNT(*) as cnt FROM user_actions").fetchone()['cnt']
-    # 近 7 天每日新增行为
     from datetime import datetime, timedelta
-    cutoff = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
-    daily = conn.execute("""
-        SELECT DATE(created_at) as day, COUNT(*) as cnt
-        FROM user_actions WHERE created_at >= ?
-        GROUP BY day ORDER BY day
-    """, (cutoff,)).fetchall()
-    # 热门功能 TOP 10
-    top_features = conn.execute("""
-        SELECT feature, COUNT(*) as cnt
-        FROM user_actions GROUP BY feature ORDER BY cnt DESC LIMIT 10
-    """).fetchall()
-    # 活跃用户 TOP 10（近 7 天）
-    active_users = conn.execute("""
-        SELECT u.id, u.username, COUNT(ua.id) as actions, MAX(ua.created_at) as last_active
-        FROM users u
-        LEFT JOIN user_actions ua ON u.id = ua.user_id AND ua.created_at >= ?
-        GROUP BY u.id HAVING actions > 0
-        ORDER BY actions DESC LIMIT 10
-    """, (cutoff,)).fetchall()
-    conn.close()
+    
+    # 总用户数
+    users = db._query('users')
+    total_users = len(users) if users else 0
+    
+    # 总行为数
+    actions = db._query('user_actions')
+    total_actions = len(actions) if actions else 0
+    
+    # 近 7 天数据
+    cutoff_7d = datetime.utcnow() - timedelta(days=7)
+    today = datetime.utcnow().date()
+    
+    daily_activity = {}
+    top_features = {}
+    active_user_map = {}
+    
+    for a in (actions or []):
+        feat = a.get('feature', '')
+        top_features[feat] = top_features.get(feat, 0) + 1
+        
+        uid = a.get('user_id')
+        if uid:
+            if uid not in active_user_map:
+                active_user_map[uid] = {'cnt': 0, 'last_active': ''}
+            active_user_map[uid]['cnt'] += 1
+            ca = a.get('created_at', '') or ''
+            if isinstance(ca, str):
+                ca = ca.replace('Z', '')
+            if active_user_map[uid]['last_active'] < ca:
+                active_user_map[uid]['last_active'] = ca
+        
+        if a.get('created_at'):
+            try:
+                ca = a['created_at']
+                if isinstance(ca, str):
+                    ca = ca.replace('Z', '')
+                created = datetime.fromisoformat(ca)
+                if created >= cutoff_7d:
+                    day_key = created.strftime('%Y-%m-%d')
+                    daily_activity[day_key] = daily_activity.get(day_key, 0) + 1
+            except (ValueError, TypeError):
+                pass
+    
+    today_actions = 0
+    for a in (actions or []):
+        if a.get('created_at'):
+            try:
+                ca = a['created_at']
+                if isinstance(ca, str):
+                    ca = ca.replace('Z', '')
+                created = datetime.fromisoformat(ca).date()
+                if created == today:
+                    today_actions += 1
+            except (ValueError, TypeError):
+                pass
+    
+    active_users = []
+    for uid, info in sorted(active_user_map.items(), key=lambda x: x[1]['cnt'], reverse=True)[:10]:
+        if info['cnt'] > 0:
+            user_data = db._query('users', 'id,username', {'id': ('eq', uid)})
+            username = user_data[0]['username'] if user_data else 'unknown'
+            try:
+                la = datetime.fromisoformat(info['last_active'].replace('Z', ''))
+                la_str = la.strftime('%Y-%m-%d %H:%M:%S')
+            except (ValueError, TypeError):
+                la_str = ''
+            active_users.append({'id': uid, 'username': username, 'actions': info['cnt'], 'last_active': la_str})
+    
+    top_features_list = [{'feature': k, 'cnt': v} for k, v in sorted(top_features.items(), key=lambda x: x[1], reverse=True)[:10]]
+    daily_list = [{'day': k, 'cnt': v} for k, v in sorted(daily_activity.items())]
+    
     return jsonify({
         'success': True,
         'data': {
             'total_users': total_users,
             'total_actions': total_actions,
-            'daily_activity': [dict(r) for r in daily],
-            'top_features': [dict(r) for r in top_features],
-            'active_users': [dict(r) for r in active_users],
+            'daily_activity': daily_list,
+            'top_features': top_features_list,
+            'active_users': active_users,
+            'today_actions': today_actions,
         }
     })
 
@@ -183,37 +230,46 @@ def api_admin_users():
 def api_admin_recent_actions():
     """管理后台全站最近行为记录"""
     limit = request.args.get('limit', 50, type=int)
-    conn = db.get_db()
-    rows = conn.execute("""
-        SELECT ua.created_at, ua.action_type, ua.feature, ua.params, ua.page, ua.duration,
-               u.username
-        FROM user_actions ua
-        LEFT JOIN users u ON ua.user_id = u.id
-        ORDER BY ua.created_at DESC
-        LIMIT ?
-    """, (limit,)).fetchall()
-    conn.close()
-    return jsonify({'success': True, 'data': [dict(r) for r in rows]})
+    actions = db._query('user_actions', '*', order='created_at desc', limit=limit)
+    
+    results = []
+    for a in actions:
+        uid = a.get('user_id')
+        username = 'unknown'
+        if uid:
+            user_data = db._query('users', 'username', {'id': ('eq', uid)})
+            if user_data:
+                username = user_data[0].get('username', 'unknown')
+        
+        r = dict(a)
+        r['username'] = username
+        if r.get('created_at'):
+            r['created_at'] = r['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+        results.append(r)
+    
+    return jsonify({'success': True, 'data': results})
 
 
 @app.route('/api/admin/user/<int:user_id>', methods=['GET'])
 @admin_required
 def api_admin_user_detail(user_id):
     """管理后台用户详情"""
-    conn = db.get_db()
-    user = conn.execute("SELECT id, username, email, avatar, created_at, updated_at FROM users WHERE id = ?", (user_id,)).fetchone()
-    if not user:
-        conn.close()
+    user_data = db._query('users', 'id,username,email,avatar,created_at,updated_at', {'id': ('eq', user_id)})
+    if not user_data:
         return jsonify({'success': False, 'error': '用户不存在'})
+    user = user_data[0]
+    
     # 用户行为记录（最近 100 条）
-    actions = conn.execute("""
-        SELECT action_type, feature, params, page, duration, created_at
-        FROM user_actions WHERE user_id = ? ORDER BY created_at DESC LIMIT 100
-    """, (user_id,)).fetchall()
+    actions = db._query('user_actions', '*', {'user_id': ('eq', user_id)}, order='created_at desc', limit=100)
+    user['actions'] = []
+    for a in actions:
+        r = dict(a)
+        if r.get('created_at'):
+            r['created_at'] = r['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+        user['actions'].append(r)
+    
     # 用户统计
     stats = db.get_user_analytics(user_id, 30)
-    conn.close()
-    user['actions'] = [dict(r) for r in actions]
     user['stats'] = stats
     return jsonify({'success': True, 'data': user})
 
