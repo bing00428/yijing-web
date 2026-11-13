@@ -278,7 +278,8 @@ function switchPage(pageId) {
     if (pageId === 'home') { /* 首页无需加载 */ }
     if (pageId === 'hexagrams') loadHexagramList();
     if (pageId === 'najia') loadNajiaData();
-    if (pageId === '28_xiu') query28Xiu();
+    // 二十八宿不自动加载，等待用户点击查询按钮
+    // if (pageId === '28_xiu') query28Xiu();
     if (pageId === 'wuxing_detail') switchWuxingDetail('liu_he');
     if (pageId === 'coin') { coinYaoValues = []; coinMovingLines = []; updateCoinUI(); }
     if (pageId === 'yarrow') { yarrowYaoValues = []; yarrowMovingLines = []; updateYarrowUI(); }
