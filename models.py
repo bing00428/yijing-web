@@ -12,8 +12,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # Supabase 连接
 DB_PASSWORD = os.environ.get('SUPABASE_DB_PASSWORD', 'nDT5oOmUMxulOlX8')
 PROJECT_REF = os.environ.get('SUPABASE_PROJECT_REF', 'qkxzmmqhewhpflgyuoud')
-# 直连模式（绕过 pooler）
-DB_HOST = os.environ.get('SUPABASE_DB_HOST', f'{PROJECT_REF}.supabase.co')
+# Supabase 真正的直连端点（不走 Cloudflare）
+DB_HOST = os.environ.get('SUPABASE_DB_HOST', f'db.{PROJECT_REF}.supabase.co')
 DB_PORT = int(os.environ.get('SUPABASE_DB_PORT', '5432'))
 DB_NAME = 'postgres'
 
