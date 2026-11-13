@@ -13,10 +13,6 @@ from core import (
     TRIGRAMS, HEXAGRAMS, NAJIA, HEXAGRAM_LINES,
     toss_coins, toss_single_coin, yarrow_stalk, yarrow_single, time_divination,
     find_hexagram, search_hexagrams, get_changed_hexagram, binary_to_trigrams,
-)
-
-# 导入完整卦象数据（含大象传、学术注释）
-from hexagram_data import HEXAGRAM_DATA
     xing_relationship, xing_strength, get_xing_relationship_detail,
     ba_zhai_directions, lookup_trigram_by_dir,
     get_mingben_wuxing, calc_benming_wuxing_strength,
@@ -39,6 +35,9 @@ from hexagram_data import HEXAGRAM_DATA
     WU_XING_XI_JIE, BU_JIANG_BAI_JIAN,
     SHI_CHEN_NAMES,
 )
+
+# 导入完整卦象数据（含大象传、学术注释）
+from hexagram_data import HEXAGRAM_DATA
 
 # 导入数据库模块
 import models as db
