@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>周易八卦 · 管理后台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f1923; color: #e0e0e0; }
+        
+        /* 登录页 */
+        .login-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .login-box { background: #1a2a3a; padding: 2rem; border-radius: 12px; width: 360px; border: 1px solid #2a3a4a; }
+        .login-box h2 { text-align: center; margin-bottom: 1.5rem; color: #d4a843; }
+        .login-box input { width: 100%; padding: 0.75rem; border: 1px solid #2a3a4a; border-radius: 8px; background: #0f1923; color: #e0e0e0; font-size: 1rem; margin-bottom: 1rem; }
+        .login-box input:focus { outline: none; border-color: #d4a843; }
+        .login-box button { width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #d4a843, #c49b30); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .login-box button:hover { opacity: 0.9; }
+        .login-error { color: #e57373; font-size: 0.85rem; margin-bottom: 1rem; text-align: center; }
+
+        /* 后台布局 */
+        .admin-layout { display: none; height: 100vh; }
+        .admin-layout.active { display: flex; }
+        
+        /* 侧栏 */
+        .admin-sidebar { width: 220px; background: #1a2a3a; border-right: 1px solid #2a3a4a; display: flex; flex-direction: column; }
+        .admin-sidebar-header { padding: 1.25rem; border-bottom: 1px solid #2a3a4a; }
+        .admin-sidebar-header h2 { font-size: 1rem; color: #d4a843; }
+        .admin-sidebar-header small { color: #666; font-size: 0.75rem; }
+        .admin-nav { flex: 1; padding: 1rem 0; }
+        .admin-nav a { display: block; padding: 0.75rem 1.25rem; color: #aaa; text-decoration: none; font-size: 0.9rem; border-left: 3px solid transparent; }
+        .admin-nav a:hover { background: rgba(212,168,67,0.05); color: #d4a843; }
+        .admin-nav a.active { background: rgba(212,168,67,0.1); color: #d4a843; border-left-color: #d4a843; }
+        .admin-sidebar-footer { padding: 1rem 1.25rem; border-top: 1px solid #2a3a4a; }
+        .admin-sidebar-footer button { width: 100%; padding: 0.5rem; background: transparent; border: 1px solid #e57373; color: #e57373; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+        .admin-sidebar-footer button:hover { background: rgba(229,115,115,0.1); }
+
+        /* 主内容 */
+        .admin-main { flex: 1; overflow-y: auto; padding: 2rem; }
+        .admin-section { display: none; }
+        .admin-section.active { display: block; }
+        .admin-section h1 { font-size: 1.5rem; color: #d4a843; margin-bottom: 1.5rem; }
+
+        /* 统计卡片 */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: #1a2a3a; border: 1px solid #2a3a4a; border-radius: 12px; padding: 1.25rem; }
+        .stat-card .label { color: #666; font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .stat-card .value { font-size: 2rem; font-weight: bold; color: #d4a843; }
+        .stat-card .sub { color: #888; font-size: 0.8rem; margin-top: 0.25rem; }
+
+        /* 图表容器 */
+        .chart-container { background: #1a2a3a; border: 1px solid #2a3a4a; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+        .chart-container h3 { color: #d4a843; font-size: 1rem; margin-bottom: 1rem; }
+        .bar-chart { display: flex; align-items: flex-end; gap: 4px; height: 150px; padding-top: 1rem; }
+        .bar-chart .bar { flex: 1; background: linear-gradient(to top, #d4a843, #c49b30); border-radius: 4px 4px 0 0; min-width: 20px; position: relative; cursor: pointer; }
+        .bar-chart .bar:hover { opacity: 0.8; }
+        .bar-chart .bar .tooltip { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; white-space: nowrap; margin-bottom: 4px; }
+        .bar-chart .bar:hover .tooltip { display: block; }
+        .bar-chart .bar-labels { display: flex; gap: 4px; margin-top: 4px; }
+        .bar-chart .bar-labels span { flex: 1; text-align: center; font-size: 0.65rem; color: #666; min-width: 20px; }
+
+        /* 表格 */
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #2a3a4a; }
+        .data-table th { color: #d4a843; font-size: 0.85rem; font-weight: 600; background: rgba(212,168,67,0.05); }
+        .data-table td { font-size: 0.85rem; }
+        .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+        .data-table .clickable { color: #4fc3f7; cursor: pointer; }
+        .data-table .clickable:hover { text-decoration: underline; }
+
+        /* 用户详情 */
+        .detail-header { background: #1a2a3a; border: 1px solid #2a3a4a; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+        .detail-header h2 { color: #d4a843; margin-bottom: 0.5rem; }
+        .detail-header .meta { color: #666; font-size: 0.85rem; }
+        .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .detail-card { background: #1a2a3a; border: 1px solid #2a3a4a; border-radius: 12px; padding: 1.25rem; }
+        .detail-card h3 { color: #d4a843; font-size: 0.95rem; margin-bottom: 1rem; }
+        .back-btn { display: inline-block; padding: 0.5rem 1rem; background: transparent; border: 1px solid #2a3a4a; color: #aaa; border-radius: 6px; cursor: pointer; margin-bottom: 1rem; font-size: 0.85rem; }
+        .back-btn:hover { border-color: #d4a843; color: #d4a843; }
+
+        /* 加载 */
+        .loading { text-align: center; padding: 3rem; color: #666; }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .admin-sidebar { width: 60px; }
+            .admin-sidebar-header h2, .admin-sidebar-header small, .admin-nav a span { display: none; }
+            .admin-sidebar-header { text-align: center; }
+            .admin-nav a { text-align: center; padding: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 登录页 -->
+<div class="login-container" id="login-page">
+    <div class="login-box">
+        <h2>☯ 管理后台</h2>
+        <div id="login-error" class="login-error"></div>
+        <form onsubmit="doAdminLogin(event)">
+            <input type="password" id="admin-password" placeholder="请输入管理密码" required autofocus>
+            <button type="submit">登录</button>
+        </form>
+    </div>
+</div>
+
+<!-- 后台布局 -->
+<div class="admin-layout" id="admin-layout">
+    <!-- 侧栏 -->
+    <div class="admin-sidebar">
+        <div class="admin-sidebar-header">
+            <h2>☯ 周易八卦</h2>
+            <small>管理后台</small>
+        </div>
+        <nav class="admin-nav">
+            <a href="javascript:void(0)" class="active" data-section="overview"><span>📊 数据总览</span></a>
+            <a href="javascript:void(0)" data-section="users"><span>👥 用户列表</span></a>
+            <a href="javascript:void(0)" data-section="user-detail" style="display:none;" id="nav-user-detail"><span>👤 用户详情</span></a>
+        </nav>
+        <div class="admin-sidebar-footer">
+            <button onclick="doAdminLogout()">退出登录</button>
+        </div>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="admin-main">
+        <!-- 总览 -->
+        <div class="admin-section active" id="section-overview">
+            <h1>📊 数据总览</h1>
+            <div class="loading" id="overview-loading">加载中...</div>
+            <div id="overview-content" style="display:none;">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="label">总用户数</div>
+                        <div class="value" id="stat-total-users">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">总行为记录</div>
+                        <div class="value" id="stat-total-actions">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">近 7 日活跃用户</div>
+                        <div class="value" id="stat-active-users">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">今日行为数</div>
+                        <div class="value" id="stat-today-actions">0</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>近 7 日行为趋势</h3>
+                    <div class="bar-chart" id="chart-daily"></div>
+                    <div class="bar-chart" id="chart-daily-labels"></div>
+                </div>
+
+                <div class="detail-grid">
+                    <div class="detail-card">
+                        <h3>🔥 热门功能 TOP 10</h3>
+                        <table class="data-table"><thead><tr><th>功能</th><th>次数</th></tr></thead>
+                        <tbody id="table-top-features"></tbody></table>
+                    </div>
+                    <div class="detail-card">
+                        <h3>👥 活跃用户 TOP 10</h3>
+                        <table class="data-table"><thead><tr><th>用户</th><th>行为数</th><th>最后活跃</th></tr></thead>
+                        <tbody id="table-active-users"></tbody></table>
+                    </div>
+                </div>
+
+                <div class="chart-container" style="margin-top:1.5rem;">
+                    <h3>📜 最近行为记录（全站最近 50 条）</h3>
+                    <div class="loading" id="recent-actions-loading" style="display:none;">加载中...</div>
+                    <table class="data-table" style="display:none;">
+                        <thead><tr><th>时间</th><th>用户</th><th>类型</th><th>功能</th><th>页面</th><th>详情</th></tr></thead>
+                        <tbody id="table-recent-actions"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 用户列表 -->
+        <div class="admin-section" id="section-users">
+            <h1>👥 用户列表</h1>
+            <div class="loading" id="users-loading">加载中...</div>
+            <div id="users-content" style="display:none;">
+                <table class="data-table">
+                    <thead><tr><th>ID</th><th>用户名</th><th>邮箱</th><th>注册时间</th><th>近 30 天行为数</th><th>最后活跃</th></tr></thead>
+                    <tbody id="table-users"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 用户详情 -->
+        <div class="admin-section" id="section-user-detail">
+            <button class="back-btn" onclick="showSection('users')">← 返回用户列表</button>
+            <div class="detail-header" id="detail-header"></div>
+            <div class="detail-grid">
+                <div class="detail-card">
+                    <h3>📈 功能分布</h3>
+                    <table class="data-table"><thead><tr><th>功能</th><th>次数</th></tr></thead>
+                    <tbody id="table-feature-dist"></tbody></table>
+                </div>
+                <div class="detail-card">
+                    <h3>📅 日活跃</h3>
+                    <table class="data-table"><thead><tr><th>日期</th><th>次数</th></tr></thead>
+                    <tbody id="table-daily-activity"></tbody></table>
+                </div>
+            </div>
+            <div class="detail-card" style="margin-bottom:1.5rem;">
+                <h3>📜 最近行为记录（最近 100 条）</h3>
+                <table class="data-table"><thead><tr><th>时间</th><th>类型</th><th>功能</th><th>页面</th><th>时长(秒)</th><th>详细信息</th></tr></thead>
+                <tbody id="table-actions"></tbody></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ========== 工具函数 ==========
+function ajax(url, data, callback) {
+    fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data),
+        credentials: 'same-origin'
+    }).then(function(r) { return r.json(); }).then(callback).catch(function(e) { console.error(e); });
+}
+
+function ajaxGet(url, callback) {
+    fetch(url, { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(callback)
+        .catch(function(e) { console.error(e); });
+}
+
+// ========== 登录 ==========
+function doAdminLogin(e) {
+    if (e) e.preventDefault();
+    var password = document.getElementById('admin-password').value;
+    ajax('/api/admin/login', { password: password }, function(json) {
+        if (json.success) {
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('admin-layout').classList.add('active');
+            loadOverview();
+        } else {
+            document.getElementById('login-error').textContent = json.error || '密码错误';
+        }
+    });
+}
+
+function doAdminLogout() {
+    ajax('/api/admin/logout', {}, function() {
+        location.reload();
+    });
+}
+
+// ========== 导航 ==========
+document.querySelectorAll('.admin-nav a').forEach(function(link) {
+    link.addEventListener('click', function() {
+        var section = this.getAttribute('data-section');
+        showSection(section);
+    });
+});
+
+function showSection(section) {
+    // 更新导航
+    document.querySelectorAll('.admin-nav a').forEach(function(a) {
+        a.classList.toggle('active', a.getAttribute('data-section') === section);
+    });
+    // 显示内容
+    document.querySelectorAll('.admin-section').forEach(function(s) { s.classList.remove('active'); });
+    var target = document.getElementById('section-' + section);
+    if (target) target.classList.add('active');
+    
+    if (section === 'overview') loadOverview();
+    if (section === 'users') loadUsers();
+}
+
+// ========== 总览 ==========
+function loadOverview() {
+    document.getElementById('overview-loading').style.display = 'block';
+    document.getElementById('overview-content').style.display = 'none';
+    
+    ajaxGet('/api/admin/overview', function(json) {
+        if (!json.success) return;
+        var d = json.data;
+        
+        document.getElementById('stat-total-users').textContent = d.total_users || 0;
+        document.getElementById('stat-total-actions').textContent = d.total_actions || 0;
+        document.getElementById('stat-active-users').textContent = (d.active_users || []).length;
+        
+        // 今日行为数
+        var today = new Date().toISOString().split('T')[0];
+        var todayCnt = 0;
+        if (d.daily_activity && d.daily_activity.length > 0) {
+            var todayEntry = d.daily_activity.filter(function(r) { return r.day === today; });
+            if (todayEntry.length > 0) todayCnt = todayEntry[0].cnt;
+        }
+        document.getElementById('stat-today-actions').textContent = todayCnt;
+        
+        // 每日趋势图
+        renderBarChart('chart-daily', 'chart-daily-labels', d.daily_activity || [], 'cnt');
+        
+        // 热门功能
+        var featHtml = '';
+        (d.top_features || []).forEach(function(f) {
+            var label = FEATURE_LABELS[f.feature] || f.feature;
+            featHtml += '<tr><td>' + label + '</td><td>' + f.cnt + '</td></tr>';
+        });
+        document.getElementById('table-top-features').innerHTML = featHtml || '<tr><td colspan="2" style="color:#666;text-align:center;">暂无数据</td></tr>';
+        
+        // 活跃用户
+        var activeHtml = '';
+        (d.active_users || []).forEach(function(u) {
+            activeHtml += '<tr><td>' + u.username + '</td><td>' + u.actions + '</td><td>' + (u.last_active || '-') + '</td></tr>';
+        });
+        document.getElementById('table-active-users').innerHTML = activeHtml || '<tr><td colspan="3" style="color:#666;text-align:center;">暂无数据</td></tr>';
+        
+        document.getElementById('overview-loading').style.display = 'none';
+        document.getElementById('overview-content').style.display = 'block';
+        
+        // 加载最近行为记录
+        loadRecentActions();
+    });
+}
+
+/** 加载全站最近行为记录 */
+function loadRecentActions() {
+    document.getElementById('recent-actions-loading').style.display = 'block';
+    var table = document.querySelector('#table-recent-actions').parentNode;
+    table.style.display = 'none';
+    
+    ajaxGet('/api/admin/recent_actions?limit=50', function(json) {
+        if (!json.success) return;
+        var html = '';
+        (json.data || []).forEach(function(a) {
+            var actionLabel = ACTION_TYPE_LABELS[a.action_type] || a.action_type;
+            var featureLabel = FEATURE_LABELS[a.feature] || a.feature;
+            var paramsText = formatParams(a.params, a.feature, a.action_type);
+            html += '<tr>'
+                + '<td style="font-size:0.8rem;">' + (a.created_at || '-') + '</td>'
+                + '<td>' + (a.username || '-') + '</td>'
+                + '<td><span style="color:#4fc3f7;font-size:0.8rem;">' + actionLabel + '</span></td>'
+                + '<td><span style="color:#d4a843;font-size:0.8rem;">' + featureLabel + '</span></td>'
+                + '<td style="font-size:0.8rem;color:#888;">' + (a.page || '-') + '</td>'
+                + '<td style="font-size:0.8rem;color:#aaa;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(paramsText) + '">' + paramsText + '</td>'
+                + '</tr>';
+        });
+        document.getElementById('table-recent-actions').innerHTML = html || '<tr><td colspan="6" style="color:#666;text-align:center;">暂无数据</td></tr>';
+        document.getElementById('recent-actions-loading').style.display = 'none';
+        table.style.display = 'table';
+    });
+}
+
+/** HTML 转义 */
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ========== 用户列表 ==========
+function loadUsers() {
+    document.getElementById('users-loading').style.display = 'block';
+    document.getElementById('users-content').style.display = 'none';
+    
+    ajaxGet('/api/admin/users?days=30', function(json) {
+        if (!json.success) return;
+        var html = '';
+        (json.data || []).forEach(function(u) {
+            html += '<tr>'
+                + '<td>' + u.id + '</td>'
+                + '<td><span class="clickable" onclick="showUserDetail(' + u.id + ')">' + u.username + '</span></td>'
+                + '<td>' + (u.email || '-') + '</td>'
+                + '<td>' + (u.created_at || '-') + '</td>'
+                + '<td>' + (u.total_actions || 0) + '</td>'
+                + '<td>' + (u.last_active || '-') + '</td>'
+                + '</tr>';
+        });
+        document.getElementById('table-users').innerHTML = html || '<tr><td colspan="6" style="color:#666;text-align:center;">暂无数据</td></tr>';
+        document.getElementById('users-loading').style.display = 'none';
+        document.getElementById('users-content').style.display = 'block';
+    });
+}
+
+// ========== 用户详情 ==========
+function showUserDetail(userId) {
+    showSection('user-detail');
+    document.getElementById('nav-user-detail').style.display = 'block';
+    
+    ajaxGet('/api/admin/user/' + userId, function(json) {
+        if (!json.success) return;
+        var u = json.data;
+        
+        // 头部
+        document.getElementById('detail-header').innerHTML = 
+            '<h2>👤 ' + u.username + '</h2>'
+            + '<div class="meta">邮箱：' + (u.email || '未设置') + ' ｜ 注册于：' + (u.created_at || '-') + '</div>';
+        
+        // 功能分布
+        var featHtml = '';
+        (u.stats.feature_distribution || []).forEach(function(f) {
+            var label = FEATURE_LABELS[f.feature] || f.feature;
+            featHtml += '<tr><td>' + label + '</td><td>' + f.cnt + '</td></tr>';
+        });
+        document.getElementById('table-feature-dist').innerHTML = featHtml || '<tr><td colspan="2" style="color:#666;text-align:center;">暂无数据</td></tr>';
+        
+        // 日活跃
+        var dailyHtml = '';
+        (u.stats.daily_activity || []).forEach(function(d) {
+            dailyHtml += '<tr><td>' + d.day + '</td><td>' + d.cnt + '</td></tr>';
+        });
+        document.getElementById('table-daily-activity').innerHTML = dailyHtml || '<tr><td colspan="2" style="color:#666;text-align:center;">暂无数据</td></tr>';
+        
+        // 行为记录
+        var actionHtml = '';
+        (u.actions || []).forEach(function(a) {
+            var actionLabel = ACTION_TYPE_LABELS[a.action_type] || a.action_type;
+            var featureLabel = FEATURE_LABELS[a.feature] || a.feature;
+            var paramsText = formatParams(a.params, a.feature, a.action_type);
+            actionHtml += '<tr>'
+                + '<td>' + (a.created_at || '-') + '</td>'
+                + '<td><span style="color:#4fc3f7;font-size:0.8rem;">' + actionLabel + '</span></td>'
+                + '<td><span style="color:#d4a843;font-size:0.8rem;">' + featureLabel + '</span></td>'
+                + '<td style="font-size:0.8rem;color:#888;">' + (a.page || '-') + '</td>'
+                + '<td>' + (a.duration || 0) + '</td>'
+                + '<td style="max-width:250px;font-size:0.8rem;color:#aaa;">' + paramsText + '</td>'
+                + '</tr>';
+        });
+        document.getElementById('table-actions').innerHTML = actionHtml || '<tr><td colspan="6" style="color:#666;text-align:center;">暂无数据</td></tr>';
+    });
+}
+
+/** 功能名中文映射 */
+var FEATURE_LABELS = {
+    'page_view': '页面浏览',
+    'coin_toss': '铜钱起卦',
+    'yarrow': '蓍草起卦',
+    'time_divination': '时间起卦',
+    'hexagram_search': '卦象搜索',
+    'hexagram_detail': '卦象详情',
+    'wuxing_relationship': '五行生克',
+    'wuxing_detail': '五行详解',
+    'benming_wuxing': '本命五行',
+    'fengshui_bazhai': '八宅风水',
+    'fengshui_mz_analysis': '门主灶分析',
+    'fengshui_que_jiang': '缺角凸角分析',
+    'fengshui_comprehensive': '风水综合',
+    'bagua_detail': '八卦详解',
+    'najia': '纳甲排盘',
+    '28_xiu': '二十八宿',
+    'profile_update': '个人资料',
+    'change_password': '修改密码',
+};
+
+/** 操作类型中文映射 */
+var ACTION_TYPE_LABELS = {
+    'page_view': '浏览',
+    'divination': '起卦',
+    'feature_use': '功能',
+};
+
+/** 格式化 params 为可读文本 */
+function formatParams(paramsStr, feature, actionType) {
+    if (!paramsStr || paramsStr === '{}' || paramsStr === 'null') return '-';
+    try {
+        var p = JSON.parse(paramsStr);
+    } catch (e) {
+        return paramsStr.substring(0, 80);
+    }
+    
+    var texts = [];
+    
+    // 铜钱起卦
+    if (feature === 'coin_toss') {
+        if (p.yao_count) texts.push(p.yao_count + ' 爻');
+    }
+    // 蓍草起卦
+    else if (feature === 'yarrow') {
+        if (p.yao_count) texts.push(p.yao_count + ' 爻');
+    }
+    // 时间起卦
+    else if (feature === 'time_divination') {
+        if (p.year) texts.push(p.year + '年' + p.month + '月' + p.day + '日' + p.hour + '时');
+    }
+    // 卦象搜索
+    else if (feature === 'hexagram_search' && p.query) {
+        texts.push('搜索卦名："' + p.query + '"');
+    }
+    // 卦象详情
+    else if (feature === 'hexagram_detail' && p.hexagram) {
+        texts.push('查看「' + p.hexagram + '卦（上' + (p.upper||'') + '下' + (p.lower||'') + '）」');
+    }
+    // 五行生克
+    else if (feature === 'wuxing_relationship' && p.wuxing1 && p.wuxing2) {
+        texts.push(p.wuxing1 + ' → ' + p.wuxing2);
+    }
+    // 五行详解
+    else if (feature === 'wuxing_detail' && p.type) {
+        var typeNames = { liu_he: '六合', san_he: '三合', liu_chong: '六冲', san_xing: '三刑', liu_hai: '六害' };
+        texts.push(typeNames[p.type] || p.type);
+    }
+    // 本命五行
+    else if (feature === 'benming_wuxing') {
+        if (p.year) texts.push(p.year + '年生');
+        if (p.month) texts.push(p.month + '月' + p.day + '日');
+    }
+    // 八宅风水
+    else if (feature === 'fengshui_bazhai' && p.gua) {
+        texts.push(p.gua + '宅');
+    }
+    // 门主灶分析
+    else if (feature === 'fengshui_mz_analysis' && p.gua) {
+        texts.push(p.gua + '宅门主灶');
+    }
+    // 缺角凸角分析
+    else if (feature === 'fengshui_que_jiang') {
+        if (p.area) texts.push(p.area + '平');
+        texts.push(p.is_que_jiang ? '缺角' : '凸角');
+    }
+    // 风水综合
+    else if (feature === 'fengshui_comprehensive' && p.gua) {
+        texts.push(p.gua + '综合');
+    }
+    // 八卦详解
+    else if (feature === 'bagua_detail' && p.gua) {
+        texts.push('查看「' + p.gua + '卦」');
+    }
+    // 纳甲排盘
+    else if (feature === 'najia') {
+        texts.push('排盘');
+    }
+    // 二十八宿
+    else if (feature === '28_xiu') {
+        if (p.xiang && p.jiux) texts.push(p.xiang + ' · ' + p.jiux);
+        else if (p.xiang) texts.push(p.xiang + '相');
+        else if (p.jiux) texts.push(p.jiux);
+    }
+    // 个人资料修改
+    else if (feature === 'profile_update' && p.fields) {
+        var fieldLabels = {
+            nickname: '昵称', username: '用户名', email: '邮箱', phone: '手机',
+            gender: '性别', birthday: '生日', bio: '简介', avatar: '头像',
+        };
+        var fieldNames = p.fields.split(',').map(function(f) { return fieldLabels[f] || f; });
+        texts.push('修改' + fieldNames.join('、'));
+    }
+    // 密码修改
+    else if (feature === 'change_password') {
+        texts.push('修改密码');
+    }
+    // 页面浏览
+    else if (actionType === 'page_view') {
+        texts.push('浏览' + (FEATURE_LABELS[feature] || feature));
+    }
+    
+    // 通用 fallback
+    if (texts.length === 0) {
+        var keys = Object.keys(p);
+        if (keys.length > 0) {
+            texts.push(keys.map(function(k) { return k + '=' + p[k]; }).join(', '));
+        }
+    }
+    
+    return texts.join(' · ') || '-';
+}
+
+// ========== 图表渲染 ==========
+function renderBarChart(chartId, labelsId, data, valueKey) {
+    var chartEl = document.getElementById(chartId);
+    var labelsEl = document.getElementById(labelsId);
+    if (!chartEl || !labelsEl) return;
+    
+    if (!data || data.length === 0) {
+        chartEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">暂无数据</div>';
+        labelsEl.innerHTML = '';
+        return;
+    }
+    
+    var maxVal = 0;
+    data.forEach(function(d) { if (d[valueKey] > maxVal) maxVal = d[valueKey]; });
+    if (maxVal === 0) maxVal = 1;
+    
+    var chartHtml = '';
+    var labelsHtml = '';
+    data.forEach(function(d) {
+        var height = Math.max((d[valueKey] / maxVal) * 100, 5);
+        chartHtml += '<div class="bar" style="height:' + height + '%;"><div class="tooltip">' + d.day + ': ' + d[valueKey] + ' 次</div></div>';
+        labelsHtml += '<span>' + d.day.substring(5) + '</span>';  // 只显示 MM-DD
+    });
+    
+    chartEl.innerHTML = chartHtml;
+    labelsEl.innerHTML = labelsHtml;
+}
+
+// ========== 启动检查 ==========
+(function() {
+    ajaxGet('/api/admin/session', function(json) {
+        if (json.success && json.logged_in) {
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('admin-layout').classList.add('active');
+            loadOverview();
+        }
+    });
+})();
+</script>
+</body>
+</html>

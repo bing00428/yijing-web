@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>☯ 周易八卦系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ====== 顶部导航栏 ====== -->
+<nav class="navbar" id="navbar">
+    <a class="navbar-brand" onclick="switchPage('home')">
+        <span class="yijing-icon">☯</span>
+        <span>周易八卦</span>
+    </a>
+    <div class="navbar-nav" id="navbar-nav">
+        <a data-page="home" onclick="switchPage('home')">首页</a>
+        <a data-page="coin" onclick="checkAuthAndSwitch('coin')">🔒铜钱起卦</a>
+        <a data-page="yarrow" onclick="checkAuthAndSwitch('yarrow')">🔒蓍草起卦</a>
+        <a data-page="time" onclick="checkAuthAndSwitch('time')">🔒时间起卦</a>
+        <a data-page="hexagrams" onclick="checkAuthAndSwitch('hexagrams')">🔒六十四卦</a>
+        <a data-page="wuxing" onclick="checkAuthAndSwitch('wuxing')">🔒五行生克</a>
+        <a data-page="wuxing_detail" onclick="checkAuthAndSwitch('wuxing_detail')">🔒五行详解</a>
+        <a data-page="fengshui" onclick="checkAuthAndSwitch('fengshui')">🔒八宅风水</a>
+        <a data-page="bagua_detail" onclick="checkAuthAndSwitch('bagua_detail')">🔒八卦详解</a>
+        <a data-page="benming" onclick="checkAuthAndSwitch('benming')">🔒本命五行</a>
+        <a data-page="28_xiu" onclick="checkAuthAndSwitch('28_xiu')">🔒二十八宿</a>
+        <a data-page="najia" onclick="checkAuthAndSwitch('najia')">🔒纳甲</a>
+        <a data-page="profile" onclick="checkAuthAndSwitch('profile')">个人中心</a>
+    </div>
+    <div class="navbar-auth" id="navbar-auth">
+        <button class="auth-btn" onclick="showLoginModal()">登录</button>
+        <button class="auth-btn auth-btn-outline" onclick="showRegisterModal()">注册</button>
+    </div>
+    <button class="auth-btn auth-btn-outline auth-btn-logout" onclick="doLogout()" title="退出登录" style="display:none;" id="navbar-logout-btn">退出</button>
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="mobile-menu-btn">☰</button>
+</nav>
+
+<!-- ====== 页面内容包裹层 ====== -->
+<div class="page-wrapper" id="page-wrapper">
+
+<!-- ====== 首页 ====== -->
+<section id="page-home" class="page active">
+    <!-- Hero -->
+    <div class="hero hero-split">
+        <!-- 粒子背景 -->
+        <div class="hero-particles" id="hero-particles"></div>
+        <!-- 鼠标跟随光效 -->
+        <div class="hero-glow-follow" id="hero-glow"></div>
+        <div class="hero-content">
+            <h1>周易八卦系统</h1>
+            <p class="hero-subtitle">传承千年的占卜与风水智慧</p>
+            <p class="hero-desc" id="hero-typing"></p>
+            <div class="hero-cta">
+                <button class="btn-cta" onclick="createRipple(event); checkAuthAndSwitch('coin')">开始占卜 →</button>
+            </div>
+            <div class="hero-quick-links">
+                <a class="quick-link" onclick="checkAuthAndSwitch('coin')">🔒铜钱起卦</a>
+                <a class="quick-link" onclick="checkAuthAndSwitch('wuxing')">🔒五行生克</a>
+                <a class="quick-link" onclick="checkAuthAndSwitch('fengshui')">🔒八宅风水</a>
+                <a class="quick-link" onclick="checkAuthAndSwitch('benming')">🔒本命五行</a>
+            </div>
+        </div>
+        <div class="hero-visual">
+            <svg class="bagua-wheel" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+                <!-- 背景装饰圆 -->
+                <circle cx="250" cy="250" r="240" fill="none" stroke="rgba(204,168,100,0.06)" stroke-width="0.5"/>
+                <circle cx="250" cy="250" r="220" fill="none" stroke="rgba(204,168,100,0.2)" stroke-width="1"/>
+                <circle cx="250" cy="250" r="210" fill="none" stroke="rgba(204,168,100,0.1)" stroke-width="0.5" stroke-dasharray="3,5"/>
+                <circle cx="250" cy="250" r="155" fill="none" stroke="rgba(204,168,100,0.3)" stroke-width="1"/>
+                <circle cx="250" cy="250" r="55" fill="none" stroke="rgba(204,168,100,0.2)" stroke-width="1"/>
+                <!-- 十字参考线 -->
+                <line x1="250" y1="20" x2="250" y2="480" stroke="rgba(204,168,100,0.07)" stroke-width="0.5"/>
+                <line x1="20" y1="250" x2="480" y2="250" stroke="rgba(204,168,100,0.07)" stroke-width="0.5"/>
+
+                <!-- 外圈: 地支 (12个, 从午开始顺时针, r=220, 向外偏移12px) -->
+                <g class="wheel-dizhi" id="wheel-dizhi">
+                    <text x="250.0" y="18.0" dy="0.32em" text-anchor="middle" fill="rgba(220,220,220,0.8)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">午</text>
+                    <text x="366.0" y="49.1" dy="0.32em" text-anchor="middle" fill="rgba(220,220,220,0.8)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">未</text>
+                    <text x="450.9" y="134.0" dy="0.32em" text-anchor="middle" fill="rgba(220,220,220,0.8)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">申</text>
+                    <text x="482.0" y="250.0" dy="0.32em" text-anchor="middle" fill="rgba(220,220,220,0.8)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">酉</text>
+                    <text x="450.9" y="366.0" dy="0.32em" text-anchor="middle" fill="rgba(220,220,220,0.8)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">戌</text>
+                    <text x="366.0" y="450.9" dy="0.32em" text-anchor="middle" fill="rgba(220,220,220,0.8)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">亥</text>
+                    <text x="250.0" y="482.0" dy="0.32em" text-anchor="middle" fill="rgba(220,220,220,0.8)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">子</text>
+                    <text x="134.0" y="450.9" dy="0.32em" text-anchor="middle" fill="rgba(220,220,220,0.8)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">丑</text>
+                    <text x="49.1" y="366.0" dy="0.32em" text-anchor="middle" fill="rgba(220,220,220,0.8)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">寅</text>
+                    <text x="18.0" y="250.0" dy="0.32em" text-anchor="middle" fill="rgba(220,220,220,0.8)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">卯</text>
+                    <text x="49.1" y="134.0" dy="0.32em" text-anchor="middle" fill="rgba(220,220,220,0.8)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">辰</text>
+                    <text x="134.0" y="49.1" dy="0.32em" text-anchor="middle" fill="rgba(220,220,220,0.8)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">巳</text>
+                </g>
+
+                <!-- 内圈: 天干 (10个, 从甲开始顺时针, r=155, 向外偏移8px) -->
+                <g class="wheel-tiangian" id="wheel-tiangian">
+                    <text x="250.0" y="87.0" dy="0.32em" text-anchor="middle" fill="rgba(204,168,100,0.85)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">甲</text>
+                    <text x="345.8" y="118.1" dy="0.32em" text-anchor="middle" fill="rgba(204,168,100,0.85)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">乙</text>
+                    <text x="405.0" y="199.6" dy="0.32em" text-anchor="middle" fill="rgba(204,168,100,0.85)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">丙</text>
+                    <text x="405.0" y="300.4" dy="0.32em" text-anchor="middle" fill="rgba(204,168,100,0.85)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">丁</text>
+                    <text x="345.8" y="381.9" dy="0.32em" text-anchor="middle" fill="rgba(204,168,100,0.85)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">戊</text>
+                    <text x="250.0" y="413.0" dy="0.32em" text-anchor="middle" fill="rgba(204,168,100,0.85)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">己</text>
+                    <text x="154.2" y="381.9" dy="0.32em" text-anchor="middle" fill="rgba(204,168,100,0.85)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">庚</text>
+                    <text x="95.0" y="300.4" dy="0.32em" text-anchor="middle" fill="rgba(204,168,100,0.85)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">辛</text>
+                    <text x="95.0" y="199.6" dy="0.32em" text-anchor="middle" fill="rgba(204,168,100,0.85)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">壬</text>
+                    <text x="154.2" y="118.1" dy="0.32em" text-anchor="middle" fill="rgba(204,168,100,0.85)" font-size="20" font-family="Noto Serif SC, serif" font-weight="600">癸</text>
+                </g>
+
+                <!-- 中心太极图 -->
+                <g class="wheel-taiji" id="wheel-taiji">
+                    <circle cx="250" cy="250" r="42" fill="none" stroke="rgba(204,168,100,0.4)" stroke-width="1"/>
+                    <circle cx="250" cy="250" r="38" fill="rgba(204,168,100,0.8)"/>
+                    <path d="M250,212 A38,38 0 0,1 250,288 A19,19 0 0,0 250,250 A19,19 0 0,1 250,212 Z" fill="#1a1814"/>
+                    <circle cx="250" cy="231" r="4.5" fill="rgba(204,168,100,0.8)"/>
+                    <circle cx="250" cy="269" r="4.5" fill="#1a1814"/>
+                </g>
+            </svg>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="scroll-reveal" style="text-align:center;padding:2rem 0;color:var(--ink-tertiary);font-size:0.95rem;line-height:1.8;">
+            <p>使用顶部导航栏选择功能，或直接点击下方快捷入口开始体验</p>
+        </div>
+    </div>
+</section>
+
+<!-- ====== 铜钱起卦 ====== -->
+<section id="page-coin" class="page">
+    <div class="hero" style="padding:1.5rem;">
+        <h1>🪙 铜钱起卦</h1>
+        <p>每次抛掷三枚铜钱，共六次成卦</p>
+    </div>
+    <div class="container">
+        <div class="result-grid">
+            <div class="card">
+                <div class="card-header">
+                    <span class="icon">🪙</span>
+                    <h3>抛铜钱</h3>
+                </div>
+                <div style="text-align:center;margin:1rem 0;">
+                    <button class="btn-primary" onclick="tossCoin()" style="font-size:1rem;padding:0.75rem 2rem;">
+                        抛掷铜钱
+                    </button>
+                </div>
+                <div id="coin-display" style="text-align:center;font-size:3rem;margin:1rem 0;">🪙🪙🪙</div>
+                <div id="yao-count" style="text-align:center;color:var(--text-muted);font-size:0.85rem;margin:0.5rem 0;"></div>
+                <div id="coin-history"></div>
+                <div id="coin-result"></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <span class="icon">📜</span>
+                    <h3>卦象</h3>
+                </div>
+                <div id="coin-hex-display" style="text-align:center;padding:1rem 0;"></div>
+                <div id="coin-final-result" style="margin-top:1rem;"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ====== 蓍草起卦 ====== -->
+<section id="page-yarrow" class="page">
+    <div class="hero" style="padding:1.5rem;">
+        <h1>🌿 蓍草起卦</h1>
+        <p>五十根蓍草，演算一爻</p>
+    </div>
+    <div class="container">
+        <div class="result-grid">
+            <div class="card">
+                <div class="card-header">
+                    <span class="icon">🌿</span>
+                    <h3>演算</h3>
+                </div>
+                <div style="text-align:center;margin:1rem 0;">
+                    <button class="btn-primary" onclick="doYarrow()" style="font-size:1rem;padding:0.75rem 2rem;">
+                        演算一爻
+                    </button>
+                </div>
+                <div id="yarrow-result"></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <span class="icon">📜</span>
+                    <h3>卦象</h3>
+                </div>
+                <div id="yarrow-hex-display" style="text-align:center;padding:1rem 0;"></div>
+                <div id="yarrow-final-result" style="margin-top:1rem;"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ====== 时间起卦 ====== -->
+<section id="page-time" class="page">
+    <div class="hero" style="padding:1.5rem;">
+        <h1>⏰ 时间起卦</h1>
+        <p>以年月日时数字起卦</p>
+    </div>
+    <div class="container">
+        <div class="result-grid">
+            <div class="card">
+                <div class="card-header">
+                    <span class="icon">⏰</span>
+                    <h3>输入时间</h3>
+                </div>
+                <div class="form-grid" style="grid-template-columns:repeat(2,1fr);">
+                    <div class="form-group">
+                        <label>年</label>
+                        <input type="number" id="time-year" value="2025">
+                    </div>
+                    <div class="form-group">
+                        <label>月</label>
+                        <input type="number" id="time-month" value="1" min="1" max="12">
+                    </div>
+                    <div class="form-group">
+                        <label>日</label>
+                        <input type="number" id="time-day" value="1" min="1" max="31">
+                    </div>
+                    <div class="form-group">
+                        <label>时辰</label>
+                        <select id="time-hour">
+                            <option value="0">子时 (23-1)</option>
+                            <option value="1">丑时 (1-3)</option>
+                            <option value="3">寅时 (3-5)</option>
+                            <option value="5">卯时 (5-7)</option>
+                            <option value="7">辰时 (7-9)</option>
+                            <option value="9">巳时 (9-11)</option>
+                            <option value="11">午时 (11-13)</option>
+                            <option value="13">未时 (13-15)</option>
+                            <option value="15">申时 (15-17)</option>
+                            <option value="17">酉时 (17-19)</option>
+                            <option value="19">戌时 (19-21)</option>
+                            <option value="21">亥时 (21-23)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="text-align:center;margin:1rem 0;">
+                    <button class="btn-primary" onclick="doTimeDivination()" style="font-size:1rem;padding:0.65rem 2rem;">
+                        起卦
+                    </button>
+                </div>
+                <div id="time-result"></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <span class="icon">📜</span>
+                    <h3>卦象</h3>
+                </div>
+                <div id="time-hex-display" style="text-align:center;padding:1rem 0;"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ====== 六十四卦 ====== -->
+<section id="page-hexagrams" class="page">
+    <div class="hero" style="padding:1.5rem;">
+        <h1>📖 六十四卦</h1>
+        <p>搜索卦名，点击查看详情</p>
+    </div>
+    <div class="container">
+        <div class="card">
+            <div class="search-wrapper" style="margin-bottom:1rem;">
+                <input type="text" class="search-input" id="hex-search" placeholder="搜索卦名..." oninput="filterHexagrams()">
+            </div>
+            <div id="hex-detail" style="display:none;margin-bottom:1rem;"></div>
+            <div id="hex-list" class="hexagram-list"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ====== 五行生克 ====== -->
+<section id="page-wuxing" class="page">
+    <div class="hero" style="padding:1.5rem;">
+        <h1>🔥 五行生克</h1>
+        <p>选择两个五行元素，查看生克关系与十神详解</p>
+    </div>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">🔥</span>
+                <h3>五行关系</h3>
+            </div>
+            <div class="form-grid" style="grid-template-columns:repeat(2,1fr);">
+                <div class="form-group">
+                    <label>元素一</label>
+                    <select id="wuxing1">
+                        <option>金</option><option>木</option><option>水</option><option>火</option><option>土</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>元素二</label>
+                    <select id="wuxing2">
+                        <option>木</option><option>金</option><option>水</option><option>火</option><option>土</option>
+                    </select>
+                </div>
+            </div>
+            <div style="text-align:center;margin:1rem 0;">
+                <button class="btn-primary" onclick="queryWuxing()">查看关系</button>
+            </div>
+            <div id="wuxing-result"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ====== 八宅风水 ====== -->
+<section id="page-fengshui" class="page">
+    <div class="hero" style="padding:1.5rem;">
+        <h1>🧭 八宅风水</h1>
+        <p>选择坐山卦，查看八卦方位吉凶星曜</p>
+    </div>
+    <div class="container">
+        <!-- 八宅风水方位 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">🧭</span>
+                <h3>八宅方位吉凶</h3>
+            </div>
+            <div class="gua-selector" id="fengshui-gua-select">
+                <button class="gua-btn" onclick="queryBaZhai('乾')">☰<small>乾宅</small></button>
+                <button class="gua-btn" onclick="queryBaZhai('坤')">☷<small>坤宅</small></button>
+                <button class="gua-btn" onclick="queryBaZhai('震')">☳<small>震宅</small></button>
+                <button class="gua-btn" onclick="queryBaZhai('巽')">☴<small>巽宅</small></button>
+                <button class="gua-btn" onclick="queryBaZhai('坎')">☵<small>坎宅</small></button>
+                <button class="gua-btn" onclick="queryBaZhai('离')">☲<small>离宅</small></button>
+                <button class="gua-btn" onclick="queryBaZhai('艮')">☶<small>艮宅</small></button>
+                <button class="gua-btn" onclick="queryBaZhai('兑')">☱<small>兑宅</small></button>
+            </div>
+            <div id="fengshui-result"></div>
+        </div>
+
+        <!-- 阳宅六要 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">🚪</span>
+                <h3>阳宅六要·门主灶</h3>
+            </div>
+            <div class="form-grid" style="grid-template-columns:repeat(3,1fr);">
+                <div class="form-group">
+                    <label>大门方位</label>
+                    <select id="fs-door-dir"><option value="北">北</option><option value="东北">东北</option><option value="东">东</option><option value="东南">东南</option><option value="南">南</option><option value="西南">西南</option><option value="西">西</option><option value="西北">西北</option></select>
+                </div>
+                <div class="form-group">
+                    <label>主房方位</label>
+                    <select id="fs-main-dir"><option value="北">北</option><option value="东北">东北</option><option value="东" selected>东</option><option value="东南">东南</option><option value="南">南</option><option value="西南">西南</option><option value="西">西</option><option value="西北">西北</option></select>
+                </div>
+                <div class="form-group">
+                    <label>厨房方位</label>
+                    <select id="fs-kitchen-dir"><option value="北">北</option><option value="东北">东北</option><option value="东">东</option><option value="东南" selected>东南</option><option value="南">南</option><option value="西南">西南</option><option value="西">西</option><option value="西北">西北</option></select>
+                </div>
+                <div class="form-group">
+                    <label>客厅方位</label>
+                    <select id="fs-living-dir"><option value="北">北</option><option value="东北">东北</option><option value="东">东</option><option value="东南">东南</option><option value="南" selected>南</option><option value="西南">西南</option><option value="西">西</option><option value="西北">西北</option></select>
+                </div>
+                <div class="form-group">
+                    <label>书房方位</label>
+                    <select id="fs-study-dir"><option value="北">北</option><option value="东北" selected>东北</option><option value="东">东</option><option value="东南">东南</option><option value="南">南</option><option value="西南">西南</option><option value="西">西</option><option value="西北">西北</option></select>
+                </div>
+                <div class="form-group">
+                    <label>厕所方位</label>
+                    <select id="fs-toilet-dir"><option value="北">北</option><option value="东北">东北</option><option value="东">东</option><option value="东南">东南</option><option value="南">南</option><option value="西南">西南</option><option value="西" selected>西</option><option value="西北">西北</option></select>
+                </div>
+            </div>
+            <div style="text-align:center;margin:0.5rem 0;">
+                <button class="btn-primary" onclick="doMzAnalysis()">🔍 分析</button>
+            </div>
+            <div id="mz-analysis-result"></div>
+        </div>
+
+        <!-- 缺角凸角 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">🏠</span>
+                <h3>房屋缺角凸角分析</h3>
+            </div>
+            <div class="form-grid" style="grid-template-columns:repeat(3,1fr);">
+                <div class="form-group">
+                    <label>方位</label>
+                    <select id="qj-area"><option value="西北">西北</option><option value="正北">正北</option><option value="东北">东北</option><option value="正东">正东</option><option value="东南">东南</option><option value="正南">正南</option><option value="西南">西南</option><option value="正西">正西</option></select>
+                </div>
+                <div class="form-group">
+                    <label>类型</label>
+                    <select id="qj-type"><option value="true">缺角</option><option value="false">凸角</option></select>
+                </div>
+                <div class="form-group" style="display:flex;align-items:flex-end;">
+                    <button class="btn-primary" onclick="doQueJiangAnalysis()" style="width:100%;">分析</button>
+                </div>
+            </div>
+            <div id="que-jiang-result"></div>
+        </div>
+
+        <!-- 综合分析 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">🔮</span>
+                <h3>八宅·九宫·命理 综合分析</h3>
+            </div>
+            <div class="form-grid" style="grid-template-columns:repeat(3,1fr);">
+                <div class="form-group">
+                    <label>居住人生肖</label>
+                    <select id="zong-shengxiao"><option value="">未选</option><option value="鼠">鼠</option><option value="牛">牛</option><option value="虎">虎</option><option value="兔">兔</option><option value="龙">龙</option><option value="蛇">蛇</option><option value="马">马</option><option value="羊">羊</option><option value="猴">猴</option><option value="鸡">鸡</option><option value="狗">狗</option><option value="猪">猪</option></select>
+                </div>
+                <div class="form-group">
+                    <label>出生年</label>
+                    <input type="number" id="zong-year" value="1990" min="1900" max="2030">
+                </div>
+                <div class="form-group" style="display:flex;align-items:flex-end;">
+                    <button class="btn-primary" onclick="doComprehensiveAnalysis()" style="width:100%;background:var(--primary);">🔮 综合分析</button>
+                </div>
+            </div>
+            <div id="zong-result"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ====== 五行详解 ====== -->
+<section id="page-wuxing_detail" class="page">
+    <div class="hero" style="padding:1.5rem;">
+        <h1>📊 五行详解</h1>
+        <p>六合·三合·六冲·三刑·六害</p>
+    </div>
+    <div class="container">
+        <div class="card">
+            <div class="section-title">选择类型</div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin:0.75rem 0;">
+                <button class="btn-primary detail-tab-btn" onclick="switchWuxingDetail('liu_he')" style="background:var(--success);">六合</button>
+                <button class="btn-primary detail-tab-btn" onclick="switchWuxingDetail('san_he')" style="background:var(--info);">三合</button>
+                <button class="btn-primary detail-tab-btn" onclick="switchWuxingDetail('liu_chong')" style="background:var(--danger);">六冲</button>
+                <button class="btn-primary detail-tab-btn" onclick="switchWuxingDetail('san_xing')" style="background:var(--accent);">三刑</button>
+                <button class="btn-primary detail-tab-btn" onclick="switchWuxingDetail('liu_hai')" style="background:#8b5cf6;">六害</button>
+            </div>
+            <div id="wuxing-detail-content"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ====== 本命五行 ====== -->
+<section id="page-benming" class="page">
+    <div class="hero" style="padding:1.5rem;">
+        <h1>🌟 本命五行测算</h1>
+        <p>根据出生年月日时，分析五行强弱与四柱八字</p>
+    </div>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">🌟</span>
+                <h3>输入出生信息</h3>
+            </div>
+            <div class="form-grid" style="grid-template-columns:repeat(4,1fr);">
+                <div class="form-group">
+                    <label>出生年</label>
+                    <input type="number" id="benming-year" value="1990" min="1900" max="2030">
+                </div>
+                <div class="form-group">
+                    <label>月</label>
+                    <input type="number" id="benming-month" value="5" min="0" max="12">
+                </div>
+                <div class="form-group">
+                    <label>日</label>
+                    <input type="number" id="benming-day" value="15" min="0" max="31">
+                </div>
+                <div class="form-group">
+                    <label>时辰</label>
+                    <select id="benming-hour">
+                        <option value="0">子时 (23-1)</option>
+                        <option value="1">丑时 (1-3)</option>
+                        <option value="2">寅时 (3-5)</option>
+                        <option value="3">卯时 (5-7)</option>
+                        <option value="4">辰时 (7-9)</option>
+                        <option value="5">巳时 (9-11)</option>
+                        <option value="6" selected>午时 (11-13)</option>
+                        <option value="7">未时 (13-15)</option>
+                        <option value="8">申时 (15-17)</option>
+                        <option value="9">酉时 (17-19)</option>
+                        <option value="10">戌时 (19-21)</option>
+                        <option value="11">亥时 (21-23)</option>
+                    </select>
+                </div>
+            </div>
+            <div style="text-align:center;margin:0.75rem 0;">
+                <button class="btn-primary" onclick="doBenming()" style="font-size:0.95rem;padding:0.65rem 2rem;">测算五行</button>
+            </div>
+            <div id="benming-result"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ====== 八卦详解 ====== -->
+<section id="page-bagua_detail" class="page">
+    <div class="hero" style="padding:1.5rem;">
+        <h1>☰ 八卦详解</h1>
+        <p>选择八卦，查看卦象、卦辞、类象</p>
+    </div>
+    <div class="container">
+        <div class="card">
+            <div class="gua-selector" id="bagua-select">
+                <button class="gua-btn" onclick="queryBaguaDetail('乾')">☰<small>乾</small></button>
+                <button class="gua-btn" onclick="queryBaguaDetail('坤')">☷<small>坤</small></button>
+                <button class="gua-btn" onclick="queryBaguaDetail('震')">☳<small>震</small></button>
+                <button class="gua-btn" onclick="queryBaguaDetail('巽')">☴<small>巽</small></button>
+                <button class="gua-btn" onclick="queryBaguaDetail('坎')">☵<small>坎</small></button>
+                <button class="gua-btn" onclick="queryBaguaDetail('离')">☲<small>离</small></button>
+                <button class="gua-btn" onclick="queryBaguaDetail('艮')">☶<small>艮</small></button>
+                <button class="gua-btn" onclick="queryBaguaDetail('兑')">☱<small>兑</small></button>
+            </div>
+            <div id="bagua-detail-result" style="margin-top:1rem;"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ====== 二十八宿 ====== -->
+<section id="page-28_xiu" class="page">
+    <div class="hero" style="padding:1.5rem;">
+        <h1>⭐ 二十八宿</h1>
+        <p>星宿查询·九星·建除十二神</p>
+    </div>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">⭐</span>
+                <h3>星宿查询</h3>
+            </div>
+            <div class="form-grid" style="grid-template-columns:repeat(3,1fr);">
+                <div class="form-group">
+                    <label>相</label>
+                    <select id="xiu-xiang-filter"><option value="">全部</option><option value="金">金</option><option value="木">木</option><option value="水">水</option><option value="火">火</option><option value="土">土</option></select>
+                </div>
+                <div class="form-group">
+                    <label>九星</label>
+                    <select id="xiu-jiuxing-filter"><option value="">全部</option><option value="贪狼">贪狼</option><option value="巨门">巨门</option><option value="武曲">武曲</option><option value="文曲">文曲</option><option value="廉贞">廉贞</option><option value="禄存">禄存</option><option value="破军">破军</option><option value="左辅">左辅</option><option value="右弼">右弼</option></select>
+                </div>
+                <div class="form-group" style="display:flex;align-items:flex-end;">
+                    <button class="btn-primary" onclick="query28Xiu()" style="width:100%;">查询</button>
+                </div>
+            </div>
+            <div id="28xiu-result"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ====== 纳甲 ====== -->
+<section id="page-najia" class="page">
+    <div class="hero" style="padding:1.5rem;">
+        <h1>☯ 纳甲六亲</h1>
+        <p>京房纳甲体系，八卦纳干支与六亲</p>
+    </div>
+    <div class="container">
+        <div class="card">
+            <div id="najia-content"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ====== 用户个人中心 ====== -->
+<section id="page-profile" class="page">
+    <div class="hero" style="padding:1.5rem;">
+        <h1>👤 个人中心</h1>
+        <p>管理个人资料、修改密码</p>
+    </div>
+    <div class="container">
+        <!-- 基本信息 -->
+        <div class="card" style="margin-bottom:1rem;">
+            <div class="card-header"><span class="icon">👤</span><h3>基本信息</h3></div>
+            <div style="padding:0.5rem 1rem;">
+                <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" id="profile-username" disabled style="background:var(--bg-input);color:var(--text-muted);">
+                    </div>
+                    <div class="form-group">
+                        <label>邮箱</label>
+                        <input type="email" id="profile-email" disabled style="background:var(--bg-input);color:var(--text-muted);">
+                    </div>
+                    <div class="form-group">
+                        <label>昵称</label>
+                        <input type="text" id="profile-nickname" placeholder="请输入昵称">
+                    </div>
+                    <div class="form-group">
+                        <label>手机号</label>
+                        <input type="tel" id="profile-phone" placeholder="请输入手机号">
+                    </div>
+                    <div class="form-group">
+                        <label>性别</label>
+                        <select id="profile-gender">
+                            <option value="">未填写</option>
+                            <option value="male">男</option>
+                            <option value="female">女</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>注册时间</label>
+                        <input type="text" id="profile-created" disabled style="background:var(--bg-input);color:var(--text-muted);">
+                    </div>
+                </div>
+            </div>
+            <div style="padding:0.5rem 1rem;border-top:1px solid var(--border);">
+                <button class="btn-primary" onclick="saveProfile()" id="save-profile-btn">保存资料</button>
+                <span id="profile-save-msg" style="margin-left:1rem;font-size:0.85rem;color:var(--success);"></span>
+            </div>
+        </div>
+
+        <!-- 出生信息 -->
+        <div class="card" style="margin-bottom:1rem;">
+            <div class="card-header"><span class="icon">📅</span><h3>出生信息（用于本命五行测算）</h3></div>
+            <div style="padding:0.5rem 1rem;">
+                <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                    <div class="form-group">
+                        <label>出生年</label>
+                        <input type="number" id="profile-birth-year" placeholder="如 1990" min="1900" max="2030">
+                    </div>
+                    <div class="form-group">
+                        <label>出生月</label>
+                        <input type="number" id="profile-birth-month" placeholder="1-12" min="1" max="12">
+                    </div>
+                    <div class="form-group">
+                        <label>出生日</label>
+                        <input type="number" id="profile-birth-day" placeholder="1-31" min="1" max="31">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 修改密码 -->
+        <div class="card" style="margin-bottom:1rem;">
+            <div class="card-header"><span class="icon">🔑</span><h3>修改密码</h3></div>
+            <div style="padding:0.5rem 1rem;">
+                <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                    <div class="form-group">
+                        <label>原密码</label>
+                        <input type="password" id="change-old-pw" placeholder="请输入原密码">
+                    </div>
+                    <div class="form-group">
+                        <label>新密码</label>
+                        <input type="password" id="change-new-pw" placeholder="至少4个字符" minlength="4">
+                    </div>
+                    <div class="form-group">
+                        <label>确认新密码</label>
+                        <input type="password" id="change-new-pw2" placeholder="再次输入新密码" minlength="4">
+                    </div>
+                </div>
+                <div style="margin-top:0.75rem;">
+                    <button class="btn-primary" onclick="changePassword()" id="change-pw-btn">修改密码</button>
+                    <span id="change-pw-msg" style="margin-left:1rem;font-size:0.85rem;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+</div><!-- /.page-wrapper -->
+
+
+<!-- ====== 登录/注册模态框 ====== -->
+<div class="modal-overlay" id="auth-modal" onclick="if(event.target===this)hideAuthModal()">
+    <div class="modal-container">
+        <button class="modal-close" onclick="hideAuthModal()">✕</button>
+
+        <!-- 登录表单 -->
+        <div class="auth-form-section" id="login-form-section">
+            <div class="auth-header">
+                <h2>登录</h2>
+                <p>本站所有功能需登录后使用，注册后即可解锁全部功能</p>
+            </div>
+            <form onsubmit="doLogin(event)">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="login-username" required autocomplete="username" placeholder="请输入用户名">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="login-password" required autocomplete="current-password" placeholder="请输入密码">
+                </div>
+                <div id="login-error" class="auth-error"></div>
+                <button type="submit" class="btn-auth-submit">登录</button>
+            </form>
+            <p class="auth-switch">还没有账号？<a href="javascript:void(0)" onclick="showRegisterModal(); return false;">立即注册</a></p>
+        </div>
+
+        <!-- 注册表单 -->
+        <div class="auth-form-section hidden" id="register-form-section">
+            <div class="auth-header">
+                <h2>注册</h2>
+                <p>注册后自动登录，解锁全部功能（起卦、五行、风水、本命等）</p>
+            </div>
+            <form onsubmit="doRegister(event)">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="reg-username" required minlength="2" maxlength="20" autocomplete="username" placeholder="2-20个字符">
+                </div>
+                <div class="form-group">
+                    <label>邮箱 <span class="optional">选填</span></label>
+                    <input type="email" id="reg-email" autocomplete="email" placeholder="用于找回密码">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="reg-password" required minlength="4" maxlength="50" autocomplete="new-password" placeholder="至少4个字符">
+                </div>
+                <div class="form-group">
+                    <label>确认密码</label>
+                    <input type="password" id="reg-password2" required minlength="4" autocomplete="new-password" placeholder="再次输入密码">
+                </div>
+                <div id="reg-error" class="auth-error"></div>
+                <button type="submit" class="btn-auth-submit">注册</button>
+            </form>
+            <p class="auth-switch">已有账号？<a href="javascript:void(0)" onclick="showLoginModal(); return false;">返回登录</a></p>
+        </div>
+    </div>
+</div>
+
+<!-- ====== 用户菜单（登录后可见） ====== -->
+<div class="user-dropdown" id="user-dropdown" style="display:none;">
+    <button class="user-btn" onclick="toggleUserDropdown()">
+        <span class="user-avatar" id="user-avatar-circle">U</span>
+        <span class="user-name" id="user-display-name">用户</span>
+        <span class="dropdown-arrow">▼</span>
+    </button>
+    <div class="dropdown-menu" id="user-dropdown-menu">
+        <div class="dropdown-header">
+            <div class="dropdown-user-info">
+                <span class="dropdown-username" id="dropdown-username"></span>
+                <span class="dropdown-email" id="dropdown-email"></span>
+            </div>
+        </div>
+        <a class="dropdown-item" href="javascript:void(0)" onclick="showProfilePanel(); toggleUserDropdown();">
+            <span class="dropdown-icon">👤</span> 我的资料
+        </a>
+        <a class="dropdown-item" href="javascript:void(0)" onclick="showRecordsPanel(); toggleUserDropdown();">
+            <span class="dropdown-icon">📜</span> 历史记录
+        </a>
+        <a class="dropdown-item" href="javascript:void(0)" onclick="showFavoritesPanel(); toggleUserDropdown();">
+            <span class="dropdown-icon">⭐</span> 我的收藏
+        </a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item" href="javascript:void(0)" onclick="doLogout()">
+            <span class="dropdown-icon">🚪</span> 退出登录
+        </a>
+    </div>
+</div>
+
+<script src="/static/script.js?v=1.4.8"></script>
+</body>
+</html>

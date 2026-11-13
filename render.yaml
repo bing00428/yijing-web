@@ -1,0 +1,12 @@
+# Render 部署配置
+# 参考: https://render.com/docs/deploy-flask
+
+build:
+  commands:
+    - pip install -r requirements.txt
+
+run:
+  command: gunicorn wsgi:app
+  envVars:
+    - key: PYTHON_VERSION
+      value: 3.11.0
