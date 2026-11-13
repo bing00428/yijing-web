@@ -1253,7 +1253,7 @@ function queryBagua(gua) {
 }
 function query28Xiu() {
     var xiang = document.getElementById('xiu-xiang-filter').value;
-    var jiux = document.getElementById('xiu-jiux-filter').value;
+    var jiux = document.getElementById('xiu-jiuxing-filter').value;
     showLoading('28xiu-result');
     ajax('/api/28xiu/calculate', { xiang_filter: xiang, jiux_filter: jiux }, function(json) {
         if (!json.success) { showResult('28xiu-result', '<div class="error">查询失败</div>'); return; }
