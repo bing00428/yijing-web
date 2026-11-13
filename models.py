@@ -134,7 +134,7 @@ def _query(table, columns='*', filters=None, order=None, limit=None, offset=None
         url = f'{BASE_URL}/{table}?select={columns}'
         if filters:
             for col, (op, val) in filters.items():
-                url += f'&{col}.{op}={requests.utils.quote(str(val))}'
+                url += f'&{col}={op}.{requests.utils.quote(str(val))}'
         if order:
             url += f'&order={requests.utils.quote(order)}'
         if limit:
@@ -190,7 +190,7 @@ def _update(table, filters, data):
     try:
         url = f'{BASE_URL}/{table}'
         for col, (op, val) in filters.items():
-            url += f'&{col}.{op}={requests.utils.quote(str(val))}'
+            url += f'&{col}={op}.{requests.utils.quote(str(val))}'
         
         resp = requests.patch(
             url,
@@ -208,7 +208,7 @@ def _delete(table, filters):
     try:
         url = f'{BASE_URL}/{table}'
         for col, (op, val) in filters.items():
-            url += f'&{col}.{op}={requests.utils.quote(str(val))}'
+            url += f'&{col}={op}.{requests.utils.quote(str(val))}'
         
         resp = requests.delete(url, headers=HEADERS, timeout=10)
         return resp.status_code in (200, 204)
