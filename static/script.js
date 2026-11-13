@@ -318,6 +318,10 @@ function doCoinToss() {
 function updateCoinUI() {
     var count = coinYaoValues.length;
     showResult('yao-count', '需点击 6 次，当前进度：' + count + '/6');
+    // 如果还没满 6 爻，清除最终结果
+    if (count < 6) {
+        showResult('coin-final-result', '');
+    }
     if (count > 0) {
         var last = coinYaoValues[count - 1];
         var emojis = { 9: '\ud83e\ude99\ud83e\ude99\ud83e\ude99', 6: '字字字', 7: '字字\ud83e\ude99', 8: '字\ud83e\ude99\ud83e\ude99' };
@@ -419,6 +423,10 @@ function doYarrowToss() {
 
 function updateYarrowUI() {
     var count = yarrowYaoValues.length;
+    // 如果还没满 6 爻，清除最终结果
+    if (count < 6) {
+        showResult('yarrow-final-result', '');
+    }
     var html = '<p style="text-align:center;color:var(--warning);font-weight:bold;">演算进度：' + count + '/6 爻</p>';
     html += '<div class="hex-lines">';
     for (var i = count - 1; i >= 0; i--) {
