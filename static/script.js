@@ -1255,6 +1255,10 @@ function queryBagua(gua) {
 function query28Xiu() {
     var xiang = document.getElementById('xiu-xiang-filter').value;
     var jiux = document.getElementById('xiu-jiuxing-filter').value;
+    if (!xiang && !jiux) {
+        showResult('28xiu-result', '<p style="text-align:center;color:var(--text-muted);padding:2rem;">请先进行选择</p>');
+        return;
+    }
     showLoading('28xiu-result');
     ajax('/api/28xiu/calculate', { xiang_filter: xiang, jiux_filter: jiux }, function(json) {
         if (!json.success) { showResult('28xiu-result', '<div class="error">查询失败</div>'); return; }
