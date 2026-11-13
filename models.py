@@ -12,10 +12,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # Supabase 连接
 DB_PASSWORD = os.environ.get('SUPABASE_DB_PASSWORD', 'nDT5oOmUMxulOlX8')
 PROJECT_REF = os.environ.get('SUPABASE_PROJECT_REF', 'qkxzmmqhewhpflgyuoud')
-# 强制使用 pooler 端点（忽略环境变量中的直连地址）
+# 使用 pooler 端点
 DB_HOST = os.environ.get('SUPABASE_DB_HOST', 'aws-0-us-east-1.pooler.supabase.com')
 DB_PORT = int(os.environ.get('SUPABASE_DB_PORT', '5432'))
-DB_NAME = 'postgres'
+# 使用项目引用作为数据库名（Supabase pooler 通过 dbname 识别租户）
+DB_NAME = PROJECT_REF
 
 _conn_str = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user=postgres password={DB_PASSWORD} connect_timeout=10 sslmode=require"
 
@@ -26,26 +27,21 @@ _cursor = None
 
 def _get_conn():
     """获取数据库连接"""
-    import socket
     global _conn, _db_ready
     if _conn is None:
         try:
-            # 强制 IPv4 解析
-            addrinfo = socket.getaddrinfo(DB_HOST, DB_PORT, socket.AF_INET, socket.SOCK_STREAM)
-            ipv4_addr = addrinfo[0][4][0]
             _conn = psycopg2.connect(
-                hostaddr=ipv4_addr,
+                host=DB_HOST,
                 port=DB_PORT,
                 dbname=DB_NAME,
                 user='postgres',
                 password=DB_PASSWORD,
                 connect_timeout=10,
-                sslmode='require',
-                options=f'-c external_id={PROJECT_REF}'
+                sslmode='require'
             )
             _conn.autocommit = True
             _db_ready = True
-            print("✅ Supabase 连接成功 (" + ipv4_addr + ")")
+            print("✅ Supabase 连接成功")
         except Exception as e:
             print(f"❌ Supabase 连接失败: {type(e).__name__}: {str(e)[:300]}")
             _db_ready = False
