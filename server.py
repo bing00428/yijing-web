@@ -42,9 +42,6 @@ from hexagram_data import HEXAGRAM_DATA
 # 导入数据库模块
 import models as db
 
-# 初始化数据库
-db.init_db()
-
 # Flask session 密钥（生产环境建议用环境变量）
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'yijing-web-dev-key-change-in-prod')

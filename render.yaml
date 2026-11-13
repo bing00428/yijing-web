@@ -10,3 +10,7 @@ run:
   envVars:
     - key: PYTHON_VERSION
       value: 3.11.0
+    - key: MONGODB_URI
+      sync: false
+    - key: MONGODB_DB
+      value: yijing_web
