@@ -86,6 +86,16 @@ def admin_required(f):
     return decorated
 
 
+@app.route('/api/debug/mongo', methods=['GET'])
+def api_debug_mongo():
+    """调试：检查 MongoDB 连接状态"""
+    return {
+        'mongo_ready': db._mongo_ready,
+        'db_name': db.DB_NAME,
+        'collections': list(db.db.list_collection_names()) if db._mongo_ready else [],
+    }
+
+
 @app.route('/admin')
 def admin_page():
     """管理后台页面"""
