@@ -17,8 +17,8 @@ DB_HOST = os.environ.get('SUPABASE_DB_HOST', f'db.{PROJECT_REF}.supabase.co')
 DB_PORT = int(os.environ.get('SUPABASE_DB_PORT', '5432'))
 DB_NAME = 'postgres'
 
-# Supabase 直连格式
-_conn_str = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user=postgres password={DB_PASSWORD} connect_timeout=10 sslmode=require"
+# Supabase 直连格式（ipv4only 避免 IPv6 问题）
+_conn_str = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user=postgres password={DB_PASSWORD} connect_timeout=10 sslmode=require options='-c ipv4=on'"
 
 _db_ready = False
 _conn = None
