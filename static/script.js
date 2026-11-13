@@ -344,35 +344,52 @@ function renderCoinFinalResult() {
     var binary = 0;
     for (var i = 0; i < 6; i++) { if (coinYaoValues[i] >= 7) binary |= (1 << i); }
     var upperName = binaryToTrigram((binary >> 3) & 0b111), lowerName = binaryToTrigram(binary & 0b111);
+    var hexName = null;
+    var hasMovingLines = coinMovingLines.length > 0;
+    var finalHtml = '';
+    
     ajax('/api/hexagram/search', { keyword: upperName + lowerName }, function(json) {
-        var html = '';
         if (json.data && json.data.name) {
             var hx = json.data;
-            html += '<div class="hex-display"><div class="hex-name-display" style="font-size:2rem;color:var(--gold);">' + hx.name + '</div>';
-            html += '<div class="hex-detail-display">上' + trigramSymbol(hx.upper) + hx.upper + ' 下' + trigramSymbol(hx.lower) + hx.lower + '</div>';
-            if (hx.judgment) html += '<div class="hex-judgment-display" style="background:rgba(212,168,67,0.1);border:1px solid var(--gold);border-radius:8px;padding:1rem;margin:1rem 0;">卦辞："' + hx.judgment + '"</div>';
-            html += '</div>';
+            hexName = hx.name;
+            finalHtml += '<div class="hex-display"><div class="hex-name-display" style="font-size:2rem;color:var(--gold);">' + hx.name + '</div>';
+            finalHtml += '<div class="hex-detail-display">上' + trigramSymbol(hx.upper) + hx.upper + ' 下' + trigramSymbol(hx.lower) + hx.lower + '</div>';
+            if (hx.judgment) finalHtml += '<div class="hex-judgment-display" style="background:rgba(212,168,67,0.1);border:1px solid var(--gold);border-radius:8px;padding:1rem;margin:1rem 0;">卦辞："' + hx.judgment + '"</div>';
+            finalHtml += '</div>';
         } else {
-            html += '<div class="hex-display"><div class="hex-name-display" style="font-size:2rem;color:var(--gold);">' + upperName + '上' + lowerName + '下</div></div>';
+            hexName = upperName + lowerName;
+            finalHtml += '<div class="hex-display"><div class="hex-name-display" style="font-size:2rem;color:var(--gold);">' + upperName + '上' + lowerName + '下</div></div>';
         }
-        if (coinMovingLines.length > 0) {
-            html += '<div class="moving-info" style="color:var(--accent);text-align:center;margin:0.5rem 0;">动爻：第' + coinMovingLines.join('、') + '爻</div>';
-            html += renderYaoLines(coinYaoValues, coinMovingLines);
+        if (hasMovingLines) {
+            finalHtml += '<div class="moving-info" style="color:var(--accent);text-align:center;margin:0.5rem 0;">动爻：第' + coinMovingLines.join('、') + '爻</div>';
+            finalHtml += renderYaoLines(coinYaoValues, coinMovingLines);
             var changed = coinYaoValues.map(function(v) { if (v === 9) return 8; if (v === 6) return 7; return v; });
             var cb = 0; for (var i = 0; i < 6; i++) { if (changed[i] >= 7) cb |= (1 << i); }
             var cu = binaryToTrigram((cb >> 3) & 0b111), cl = binaryToTrigram(cb & 0b111);
             ajax('/api/hexagram/search', { keyword: cu + cl }, function(cj) {
                 if (cj.data && cj.data.name) {
-                    html += '<div class="changed-hex" style="background:rgba(78,204,163,0.1);border:1px solid var(--success);border-radius:8px;padding:1rem;margin-top:1rem;"><h3 style="color:var(--success);">变卦：' + cj.data.name + '</h3></div>';
+                    finalHtml += '<div class="changed-hex" style="background:rgba(78,204,163,0.1);border:1px solid var(--success);border-radius:8px;padding:1rem;margin-top:1rem;"><h3 style="color:var(--success);">变卦：' + cj.data.name + '</h3></div>';
                 }
-                showResult('coin-final-result', html);
-                showResult('coin-hex-display', html);
+                // 命卦解读
+                finalHtml += '<div class="mingua-section" style="background:rgba(255,183,77,0.06);border:1px solid rgba(255,183,77,0.2);border-radius:8px;padding:1rem;margin-top:1rem;">';
+                finalHtml += '<h4 style="color:#ffb74d;font-size:0.95rem;margin-bottom:0.5rem;">🔮 命卦解读（倪海厦）</h4>';
+                finalHtml += '<div id="coin-mingua-content" style="display:flex;align-items:center;justify-content:center;min-height:3rem;color:var(--text-muted);">加载中...</div>';
+                finalHtml += '</div>';
+                showResult('coin-final-result', finalHtml);
+                showResult('coin-hex-display', finalHtml);
+                if (hexName) loadMinghuaData(hexName);
             });
         } else {
-            html += '<div class="moving-info" style="color:var(--text-muted);text-align:center;">静卦，无动爻</div>';
-            html += renderYaoLines(coinYaoValues, []);
-            showResult('coin-final-result', html);
-            showResult('coin-hex-display', html);
+            finalHtml += '<div class="moving-info" style="color:var(--text-muted);text-align:center;">静卦，无动爻</div>';
+            finalHtml += renderYaoLines(coinYaoValues, []);
+            // 命卦解读
+            finalHtml += '<div class="mingua-section" style="background:rgba(255,183,77,0.06);border:1px solid rgba(255,183,77,0.2);border-radius:8px;padding:1rem;margin-top:1rem;">';
+            finalHtml += '<h4 style="color:#ffb74d;font-size:0.95rem;margin-bottom:0.5rem;">🔮 命卦解读（倪海厦）</h4>';
+            finalHtml += '<div id="coin-mingua-content" style="display:flex;align-items:center;justify-content:center;min-height:3rem;color:var(--text-muted);">加载中...</div>';
+            finalHtml += '</div>';
+            showResult('coin-final-result', finalHtml);
+            showResult('coin-hex-display', finalHtml);
+            if (hexName) loadMinghuaData(hexName);
         }
     });
 }
@@ -420,28 +437,47 @@ function renderYarrowFinalResult() {
     var binary = 0;
     for (var i = 0; i < 6; i++) { if (yarrowYaoValues[i] >= 7) binary |= (1 << i); }
     var upperName = binaryToTrigram((binary >> 3) & 0b111), lowerName = binaryToTrigram(binary & 0b111);
-    var html = renderYaoLines(yarrowYaoValues, yarrowMovingLines);
-    html += '<div class="hex-display"><div class="hex-name-display" style="font-size:2rem;color:var(--gold);">' + upperName + '上' + lowerName + '下</div></div>';
+    var hexName = null;
+    var hasMovingLines = yarrowMovingLines.length > 0;
+    
     ajax('/api/hexagram/search', { keyword: upperName + lowerName }, function(json) {
+        var finalHtml = renderYaoLines(yarrowYaoValues, yarrowMovingLines);
         if (json.data && json.data.name) {
-            html = '<div class="hex-display"><div class="hex-name-display" style="font-size:2rem;color:var(--gold);">' + json.data.name + '</div>';
-            html += '<div class="hex-detail-display">上' + trigramSymbol(json.data.upper) + json.data.upper + ' 下' + trigramSymbol(json.data.lower) + json.data.lower + '</div>';
-            if (json.data.judgment) html += '<div class="hex-judgment-display" style="background:rgba(212,168,67,0.1);border:1px solid var(--gold);border-radius:8px;padding:1rem;margin:1rem 0;">卦辞："' + json.data.judgment + '"</div>';
-            html += '</div>';
+            hexName = json.data.name;
+            finalHtml += '<div class="hex-display"><div class="hex-name-display" style="font-size:2rem;color:var(--gold);">' + json.data.name + '</div>';
+            finalHtml += '<div class="hex-detail-display">上' + trigramSymbol(json.data.upper) + json.data.upper + ' 下' + trigramSymbol(json.data.lower) + json.data.lower + '</div>';
+            if (json.data.judgment) finalHtml += '<div class="hex-judgment-display" style="background:rgba(212,168,67,0.1);border:1px solid var(--gold);border-radius:8px;padding:1rem;margin:1rem 0;">卦辞："' + json.data.judgment + '"</div>';
+            finalHtml += '</div>';
+        } else {
+            hexName = upperName + lowerName;
+            finalHtml += '<div class="hex-display"><div class="hex-name-display" style="font-size:2rem;color:var(--gold);">' + upperName + '上' + lowerName + '下</div></div>';
         }
-        if (yarrowMovingLines.length > 0) {
-            html += '<div class="moving-info" style="color:var(--accent);text-align:center;">动爻：第' + yarrowMovingLines.join('、') + '爻</div>';
+        if (hasMovingLines) {
+            finalHtml += '<div class="moving-info" style="color:var(--accent);text-align:center;">动爻：第' + yarrowMovingLines.join('、') + '爻</div>';
             var changed = yarrowYaoValues.map(function(v) { if (v === 9) return 8; if (v === 6) return 7; return v; });
             var cb = 0; for (var i = 0; i < 6; i++) { if (changed[i] >= 7) cb |= (1 << i); }
             var cu = binaryToTrigram((cb >> 3) & 0b111), cl = binaryToTrigram(cb & 0b111);
             ajax('/api/hexagram/search', { keyword: cu + cl }, function(cj) {
-                if (cj.data && cj.data.name) html += '<div class="changed-hex" style="background:rgba(78,204,163,0.1);border:1px solid var(--success);border-radius:8px;padding:1rem;margin-top:1rem;"><h3 style="color:var(--success);">变卦：' + cj.data.name + '</h3></div>';
-                showResult('yarrow-final-result', html);
-                showResult('yarrow-hex-display', html);
+                if (cj.data && cj.data.name) finalHtml += '<div class="changed-hex" style="background:rgba(78,204,163,0.1);border:1px solid var(--success);border-radius:8px;padding:1rem;margin-top:1rem;"><h3 style="color:var(--success);">变卦：' + cj.data.name + '</h3></div>';
+                // 命卦解读
+                finalHtml += '<div class="mingua-section" style="background:rgba(255,183,77,0.06);border:1px solid rgba(255,183,77,0.2);border-radius:8px;padding:1rem;margin-top:1rem;">';
+                finalHtml += '<h4 style="color:#ffb74d;font-size:0.95rem;margin-bottom:0.5rem;">🔮 命卦解读（倪海厦）</h4>';
+                finalHtml += '<div id="yarrow-mingua-content" style="display:flex;align-items:center;justify-content:center;min-height:3rem;color:var(--text-muted);">加载中...</div>';
+                finalHtml += '</div>';
+                showResult('yarrow-final-result', finalHtml);
+                showResult('yarrow-hex-display', finalHtml);
+                if (hexName) loadMinghuaData(hexName);
             });
         } else {
-            showResult('yarrow-final-result', html + '<div class="moving-info" style="color:var(--text-muted);text-align:center;">静卦</div>');
-            showResult('yarrow-hex-display', html + '<div class="moving-info" style="color:var(--text-muted);text-align:center;">静卦</div>');
+            finalHtml += '<div class="moving-info" style="color:var(--text-muted);text-align:center;">静卦</div>';
+            // 命卦解读
+            finalHtml += '<div class="mingua-section" style="background:rgba(255,183,77,0.06);border:1px solid rgba(255,183,77,0.2);border-radius:8px;padding:1rem;margin-top:1rem;">';
+            finalHtml += '<h4 style="color:#ffb74d;font-size:0.95rem;margin-bottom:0.5rem;">🔮 命卦解读（倪海厦）</h4>';
+            finalHtml += '<div id="yarrow-mingua-content" style="display:flex;align-items:center;justify-content:center;min-height:3rem;color:var(--text-muted);">加载中...</div>';
+            finalHtml += '</div>';
+            showResult('yarrow-final-result', finalHtml);
+            showResult('yarrow-hex-display', finalHtml);
+            if (hexName) loadMinghuaData(hexName);
         }
     });
 }
