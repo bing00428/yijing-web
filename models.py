@@ -13,29 +13,19 @@ from werkzeug.security import generate_password_hash, check_password_hash
 MONGO_URI = os.environ.get('MONGODB_URI', 'mongodb+srv://test:test@cluster0.mongodb.net/test?retryWrites=true&w=majority')
 DB_NAME = os.environ.get('MONGODB_DB', 'yijing_web')
 
-# 确保连接字符串包含所有必要的参数
-_sep = '&' if '?' in MONGO_URI else '?'
-if 'cluster0.q29hksr.mongodb.net' in MONGO_URI:
-    # MongoDB Atlas 集群连接，添加 TLS 兼容性参数
-    MONGO_URI = f"{MONGO_URI}{_sep}retryWrites=true&w=majority&tls=true&tlsAllowInvalidCertificates=true&serverSelectionTimeoutMS=10000"
-else:
-    # 其他集群
-    MONGO_URI = f"{MONGO_URI}{_sep}retryWrites=true&w=majority&tlsAllowInvalidCertificates=true&serverSelectionTimeoutMS=10000"
-
 try:
     # 使用 pymongo 连接对象手动设置 SSL 参数
-    from urllib.parse import urlparse, urlencode, urlunparse
+    from urllib.parse import urlparse, urlunparse
+    import urllib.parse
     
     parsed = urlparse(MONGO_URI)
     # 解析现有查询参数
-    import urllib.parse
     params = dict(urllib.parse.parse_qsl(parsed.query)) if parsed.query else {}
     # 添加 TLS 兼容参数
     params.update({
         'retryWrites': 'true',
         'w': 'majority',
         'tls': 'true',
-        'tlsAllowInvalidCertificates': 'true',
         'tlsInsecure': 'true',
         'serverSelectionTimeoutMS': '10000',
         'connectTimeoutMS': '10000',
