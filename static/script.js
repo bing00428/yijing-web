@@ -440,13 +440,16 @@ function updateYarrowUI() {
 }
 
 function renderYarrowFinalResult() {
+    console.log('[Yarrow] renderYarrowFinalResult called, yaoValues:', yarrowYaoValues);
     var binary = 0;
     for (var i = 0; i < 6; i++) { if (yarrowYaoValues[i] >= 7) binary |= (1 << i); }
     var upperName = binaryToTrigram((binary >> 3) & 0b111), lowerName = binaryToTrigram(binary & 0b111);
+    console.log('[Yarrow] Trigrams:', upperName, lowerName);
     var hexName = null;
     var hasMovingLines = yarrowMovingLines.length > 0;
     
     ajax('/api/hexagram/search', { keyword: upperName + lowerName }, function(json) {
+        console.log('[Yarrow] Hexagram search result:', json);
         var finalHtml = renderYaoLines(yarrowYaoValues, yarrowMovingLines);
         if (json.data && json.data.name) {
             hexName = json.data.name;
@@ -458,6 +461,7 @@ function renderYarrowFinalResult() {
             hexName = upperName + lowerName;
             finalHtml += '<div class="hex-display"><div class="hex-name-display" style="font-size:2rem;color:var(--gold);">' + upperName + '上' + lowerName + '下</div></div>';
         }
+        console.log('[Yarrow] Final hexName:', hexName);
         if (hasMovingLines) {
             finalHtml += '<div class="moving-info" style="color:var(--accent);text-align:center;">动爻：第' + yarrowMovingLines.join('、') + '爻</div>';
             var changed = yarrowYaoValues.map(function(v) { if (v === 9) return 8; if (v === 6) return 7; return v; });
@@ -472,6 +476,7 @@ function renderYarrowFinalResult() {
                 finalHtml += '</div>';
                 showResult('yarrow-final-result', finalHtml);
                 showResult('yarrow-hex-display', finalHtml);
+                console.log('[Yarrow] Calling loadMinghuaData with:', hexName);
                 if (hexName) loadMinghuaData(hexName, 'yarrow-mingua-content');
             });
         } else {
@@ -483,6 +488,7 @@ function renderYarrowFinalResult() {
             finalHtml += '</div>';
             showResult('yarrow-final-result', finalHtml);
             showResult('yarrow-hex-display', finalHtml);
+            console.log('[Yarrow] Calling loadMinghuaData with:', hexName);
             if (hexName) loadMinghuaData(hexName, 'yarrow-mingua-content');
         }
     });
