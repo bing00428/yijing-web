@@ -377,7 +377,7 @@ function renderCoinFinalResult() {
                 finalHtml += '</div>';
                 showResult('coin-final-result', finalHtml);
                 showResult('coin-hex-display', finalHtml);
-                if (hexName) loadMinghuaData(hexName);
+                if (hexName) loadMinghuaData(hexName, 'coin-mingua-content');
             });
         } else {
             finalHtml += '<div class="moving-info" style="color:var(--text-muted);text-align:center;">静卦，无动爻</div>';
@@ -389,7 +389,7 @@ function renderCoinFinalResult() {
             finalHtml += '</div>';
             showResult('coin-final-result', finalHtml);
             showResult('coin-hex-display', finalHtml);
-            if (hexName) loadMinghuaData(hexName);
+            if (hexName) loadMinghuaData(hexName, 'coin-mingua-content');
         }
     });
 }
@@ -466,7 +466,7 @@ function renderYarrowFinalResult() {
                 finalHtml += '</div>';
                 showResult('yarrow-final-result', finalHtml);
                 showResult('yarrow-hex-display', finalHtml);
-                if (hexName) loadMinghuaData(hexName);
+                if (hexName) loadMinghuaData(hexName, 'yarrow-mingua-content');
             });
         } else {
             finalHtml += '<div class="moving-info" style="color:var(--text-muted);text-align:center;">静卦</div>';
@@ -477,7 +477,7 @@ function renderYarrowFinalResult() {
             finalHtml += '</div>';
             showResult('yarrow-final-result', finalHtml);
             showResult('yarrow-hex-display', finalHtml);
-            if (hexName) loadMinghuaData(hexName);
+            if (hexName) loadMinghuaData(hexName, 'yarrow-mingua-content');
         }
     });
 }
@@ -561,10 +561,15 @@ function doTimeDivination() {
     });
 }
 
-/** 加载命卦数据 */
-function loadMinghuaData(hexName) {
+/** 加载命卦数据
+ * @param {string} hexName - 卦名
+ * @param {string} [containerId='mingua-content'] - 命卦内容容器 ID
+ */
+function loadMinghuaData(hexName, containerId) {
+    containerId = containerId || 'mingua-content';
     ajax('/api/mingua/lookup', { hexagram: hexName }, function(json) {
-        var container = document.getElementById('mingua-content');
+        var container = document.getElementById(containerId);
+        if (!container) { console.warn('Mingua container not found:', containerId); return; }
         if (!json.success || !json.data) {
             container.innerHTML = '<p style="color:var(--text-muted);">暂无命卦数据</p>';
             return;
