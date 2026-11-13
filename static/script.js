@@ -567,14 +567,17 @@ function doTimeDivination() {
  */
 function loadMinghuaData(hexName, containerId) {
     containerId = containerId || 'mingua-content';
+    console.log('[Minghua] Loading data for:', hexName, 'container:', containerId);
     ajax('/api/mingua/lookup', { hexagram: hexName }, function(json) {
+        console.log('[Minghua] API response:', json);
         var container = document.getElementById(containerId);
-        if (!container) { console.warn('Mingua container not found:', containerId); return; }
+        if (!container) { console.warn('[Minghua] Container not found:', containerId); return; }
         if (!json.success || !json.data) {
             container.innerHTML = '<p style="color:var(--text-muted);">暂无命卦数据</p>';
             return;
         }
         var m = json.data;
+        console.log('[Minghua] Data:', m);
         if (!m.xiantian && !m.houtian && !m.liunian) {
             container.innerHTML = '<p style="color:var(--text-muted);">暂无命卦数据</p>';
             return;
