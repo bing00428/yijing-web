@@ -89,7 +89,6 @@ def admin_required(f):
 @app.route('/api/debug/db', methods=['GET'])
 def api_debug_db():
     """调试：检查数据库连接状态"""
-    import os
     return {
         'db_ready': db._db_ready,
         'project_ref': db.PROJECT_REF,
