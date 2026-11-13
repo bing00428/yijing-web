@@ -91,8 +91,11 @@ def api_debug_db():
     """调试：检查数据库连接状态"""
     try:
         import psycopg2
+        import socket
+        addrinfo = socket.getaddrinfo(db.DB_HOST, db.DB_PORT, socket.AF_INET, socket.SOCK_STREAM)
+        ipv4_addr = addrinfo[0][4][0]
         conn = psycopg2.connect(
-            host=db.DB_HOST,
+            hostaddr=ipv4_addr,
             port=db.DB_PORT,
             dbname=db.DB_NAME,
             user='postgres',
@@ -105,6 +108,7 @@ def api_debug_db():
             'db_ready': True,
             'project_ref': db.PROJECT_REF,
             'db_host': db.DB_HOST,
+            'ipv4_addr': ipv4_addr,
             'connection_test': 'OK',
         }
     except Exception as e:
