@@ -89,11 +89,31 @@ def admin_required(f):
 @app.route('/api/debug/db', methods=['GET'])
 def api_debug_db():
     """调试：检查数据库连接状态"""
-    return {
-        'db_ready': db._db_ready,
-        'project_ref': db.PROJECT_REF,
-        'db_host': db.DB_HOST,
-    }
+    import psycopg2
+    import psycopg2.OperationalError
+    try:
+        conn = psycopg2.connect(
+            host=db.DB_HOST,
+            port=db.DB_PORT,
+            dbname=db.DB_NAME,
+            user=f"postgres.{db.PROJECT_REF}",
+            password=db.DB_PASSWORD,
+            connect_timeout=5
+        )
+        conn.close()
+        return {
+            'db_ready': True,
+            'project_ref': db.PROJECT_REF,
+            'db_host': db.DB_HOST,
+            'connection_test': 'OK',
+        }
+    except Exception as e:
+        return {
+            'db_ready': False,
+            'project_ref': db.PROJECT_REF,
+            'db_host': db.DB_HOST,
+            'error': f"{type(e).__name__}: {str(e)[:300]}",
+        }
 
 
 @app.route('/admin')
