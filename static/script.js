@@ -583,13 +583,20 @@ function loadMinghuaData(hexName, containerIds) {
         containerIds = containerIds ? [containerIds] : ['mingua-content'];
     }
     console.log('[Minghua] Loading data for:', hexName, 'containers:', containerIds);
+    // 调试：检查容器是否存在
+    containerIds.forEach(function(id) {
+        var byId = document.getElementById(id);
+        var byClass = document.querySelectorAll('.' + id + '-container');
+        console.log('[Minghua] Container', id, '- getElementById:', byId ? 'FOUND' : 'NOT FOUND', '- querySelectorAll:', byClass.length);
+    });
     ajax('/api/mingua/lookup', { hexagram: hexName }, function(json) {
-        console.log('[Minghua] API response:', json);
+        console.log('[Minghua] API response:', JSON.stringify(json).substring(0, 200));
         if (!json.success || !json.data) {
             // 所有容器都显示"暂无数据"
             containerIds.forEach(function(id) {
                 var containers = document.querySelectorAll('.' + id + '-container');
                 if (containers.length === 0) containers = [document.getElementById(id)];
+                console.log('[Minghua] Setting empty for', id, ', found', containers.length, 'containers');
                 containers.forEach(function(c) {
                     if (c) c.innerHTML = '<p style="color:var(--text-muted);">暂无命卦数据</p>';
                 });
@@ -597,7 +604,7 @@ function loadMinghuaData(hexName, containerIds) {
             return;
         }
         var m = json.data;
-        console.log('[Minghua] Data:', m);
+        console.log('[Minghua] Data keys:', Object.keys(m), 'xiantian len:', (m.xiantian || '').length);
         if (!m.xiantian && !m.houtian && !m.liunian) {
             containerIds.forEach(function(id) {
                 var containers = document.querySelectorAll('.' + id + '-container');
@@ -621,12 +628,17 @@ function loadMinghuaData(hexName, containerIds) {
         // 更新所有容器（优先使用 class 选择器，兼容重复 ID）
         containerIds.forEach(function(id) {
             var containers = document.querySelectorAll('.' + id + '-container');
+            console.log('[Minghua] Updating', id, ', found', containers.length, 'containers via class');
             if (containers.length === 0) {
                 var single = document.getElementById(id);
                 containers = single ? [single] : [];
+                console.log('[Minghua] Fallback to getElementById:', containers.length);
             }
-            containers.forEach(function(c) {
-                if (c) c.innerHTML = html;
+            containers.forEach(function(c, idx) {
+                if (c) {
+                    console.log('[Minghua] Setting container', idx, 'length:', html.length);
+                    c.innerHTML = html;
+                }
             });
         });
     });
