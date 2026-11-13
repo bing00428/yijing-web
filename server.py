@@ -411,14 +411,48 @@ def api_mingua_lookup():
     """查询六十四卦命卦数据（倪海厦解读）"""
     data = request.json or {}
     hex_name = data.get('hexagram', '')
+    
+    # 如果直接匹配成功，返回结果
     result = MINGUA_DATA.get(hex_name, {})
+    if result:
+        return jsonify({
+            'success': True,
+            'data': {
+                'hexagram': hex_name,
+                'xiantian': result.get('xiantian', ''),
+                'houtian': result.get('houtian', ''),
+                'liunian': result.get('liunian', ''),
+            }
+        })
+    
+    # 尝试将"上卦 + 下卦"格式映射到完整卦名
+    # 例如：乾兑 -> 天泽履
+    matched_name = None
+    for hx in HEXAGRAMS:
+        if len(hx) >= 4 and hx[1] + hx[2] == hex_name:
+            matched_name = hx[0]
+            break
+    
+    if matched_name:
+        result = MINGUA_DATA.get(matched_name, {})
+        return jsonify({
+            'success': True,
+            'data': {
+                'hexagram': hex_name,
+                'matched_name': matched_name,
+                'xiantian': result.get('xiantian', ''),
+                'houtian': result.get('houtian', ''),
+                'liunian': result.get('liunian', ''),
+            }
+        })
+    
     return jsonify({
         'success': True,
         'data': {
             'hexagram': hex_name,
-            'xiantian': result.get('xiantian', ''),
-            'houtian': result.get('houtian', ''),
-            'liunian': result.get('liunian', ''),
+            'xiantian': '',
+            'houtian': '',
+            'liunian': '',
         }
     })
 
