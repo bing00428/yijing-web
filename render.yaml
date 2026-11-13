@@ -15,6 +15,6 @@ run:
     - key: SUPABASE_DB_PASSWORD
       sync: false
     - key: SUPABASE_DB_HOST
-      value: qkxzmmqhewhpflgyuoud.supabase.co
+      value: aws-0-us-east-1.pooler.supabase.com
     - key: SUPABASE_DB_PORT
       value: "5432"

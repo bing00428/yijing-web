@@ -27,25 +27,23 @@ _cursor = None
 
 def _get_conn():
     """获取数据库连接"""
-    import socket
     global _conn, _db_ready
     if _conn is None:
         try:
-            # 强制 IPv4 解析
-            addrinfo = socket.getaddrinfo(DB_HOST, DB_PORT, socket.AF_INET, socket.SOCK_STREAM)
-            ipv4_addr = addrinfo[0][4][0]
+            # 使用 pooler 并通过 options 传递 external_id
             _conn = psycopg2.connect(
-                hostaddr=ipv4_addr,
+                host=DB_HOST,
                 port=DB_PORT,
                 dbname=DB_NAME,
                 user='postgres',
                 password=DB_PASSWORD,
                 connect_timeout=10,
-                sslmode='require'
+                sslmode='require',
+                options=f'-c external_id={PROJECT_REF}'
             )
             _conn.autocommit = True
             _db_ready = True
-            print("✅ Supabase 连接成功 (" + ipv4_addr + ")")
+            print("✅ Supabase 连接成功")
         except Exception as e:
             print(f"❌ Supabase 连接失败: {type(e).__name__}: {str(e)[:300]}")
             _db_ready = False
