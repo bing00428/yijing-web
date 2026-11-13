@@ -26,7 +26,7 @@ try:
         'retryWrites': 'true',
         'w': 'majority',
         'tls': 'true',
-        'tlsInsecure': 'true',
+        'tlsAllowInvalidCertificates': 'true',
         'serverSelectionTimeoutMS': '10000',
         'connectTimeoutMS': '10000',
     })
