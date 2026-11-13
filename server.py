@@ -757,6 +757,19 @@ WU_XING_TO_SI_XIANG = {
     '土': '白虎',
 }
 
+# 九星名称 → 二十八宿名映射（来自传统二十八宿九曜体系）
+JIUX_TO_XINGZUO = {
+    '贪狼': ['角', '奎', '柳'],
+    '巨门': ['亢', '娄', '星'],
+    '武曲': ['氐', '胃', '张'],
+    '文曲': ['房', '昴', '翼'],
+    '廉贞': ['心', '毕', '轸'],
+    '禄存': ['尾', '觜'],
+    '破军': ['箕', '斗'],
+    '左辅': ['井'],
+    '右弼': ['女', '鬼'],
+}
+
 
 @app.route('/api/28xiu/calculate', methods=['POST'])
 @require_auth
@@ -765,6 +778,8 @@ def api_28_xiu():
     data = request.json or {}
     xiang_filter = data.get('xiang_filter', '')
     jiux_filter = data.get('jiux_filter', '')
+    jiachushen_filter = data.get('jiachushen_filter', '')
+    jiachuzhi_filter = data.get('jiachuzhi_filter', '')
     results = []
 
     # 五行筛选映射：金/木→青龙, 水→玄武, 火→朱雀, 土→白虎
@@ -772,11 +787,30 @@ def api_28_xiu():
     if xiang_filter and xiang_filter in WU_XING_TO_SI_XIANG:
         si_xiang_target = WU_XING_TO_SI_XIANG[xiang_filter]
 
+    # 九星筛选：通过九星→星宿映射
+    xingzuo_list = None
+    if jiux_filter and jiux_filter in JIUX_TO_XINGZUO:
+        xingzuo_list = JIUX_TO_XINGZUO[jiux_filter]
+
     for xing_name, xi in ER_SHIBA_XIU.items():
+        # 四象筛选
         if si_xiang_target and xi.get('象', '') != si_xiang_target:
             continue
-        if jiux_filter and xi.get('星神', '') != jiux_filter:
+        # 九星筛选
+        if xingzuo_list and xing_name not in xingzuo_list:
             continue
+        # 建除十二神筛选（占断中包含）
+        if jiachushen_filter and jiachushen_filter not in xi.get('占断', ''):
+            continue
+        # 建除十二支筛选
+        if jiachuzhi_filter:
+            found = False
+            for zhi in ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']:
+                if zhi in xi.get('占断', '') and jiachuzhi_filter in xi.get('占断', ''):
+                    found = True
+                    break
+            if not found and jiachuzhi_filter:
+                continue
         results.append({
             'name': xing_name,
             'xiang': xi.get('象', ''),
@@ -784,6 +818,7 @@ def api_28_xiu():
             'jixiong': xi.get('吉凶', ''),
             'desc': xi.get('含义', ''),
             'good': xi.get('占断', ''),
+            '宿属': xi.get('宿属', ''),
         })
 
     return jsonify({'success': True, 'data': results})
