@@ -13,6 +13,15 @@ from werkzeug.security import generate_password_hash, check_password_hash
 MONGO_URI = os.environ.get('MONGODB_URI', 'mongodb+srv://test:test@cluster0.mongodb.net/test?retryWrites=true&w=majority')
 DB_NAME = os.environ.get('MONGODB_DB', 'yijing_web')
 
+# 确保连接字符串包含所有必要的参数
+_sep = '&' if '?' in MONGO_URI else '?'
+if 'cluster0.q29hksr.mongodb.net' in MONGO_URI:
+    # MongoDB Atlas 集群连接，添加 TLS 兼容性参数
+    MONGO_URI = f"{MONGO_URI}{_sep}retryWrites=true&w=majority&tls=true&tlsAllowInvalidCertificates=true&serverSelectionTimeoutMS=10000"
+else:
+    # 其他集群
+    MONGO_URI = f"{MONGO_URI}{_sep}retryWrites=true&w=majority&tlsAllowInvalidCertificates=true&serverSelectionTimeoutMS=10000"
+
 try:
     mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=10000)
     mongo_client.admin.command('ping')
@@ -20,12 +29,9 @@ try:
     _mongo_ready = True
     print(f"✅ MongoDB 连接成功: {DB_NAME}")
 except Exception as e:
-    print(f"❌ MongoDB 连接失败: {type(e).__name__}: {e}")
+    print(f"❌ MongoDB 连接失败: {type(e).__name__}: {str(e)[:300]}")
     print(f"   MONGODB_URI: {MONGO_URI.split('@')[0]}@...")
     print(f"   MONGODB_DB: {DB_NAME}")
-    print(f"   URI length: {len(MONGO_URI)}")
-    import os
-    print(f"   Render instance: {os.environ.get('RENDER', 'false')}")
     db = None
     _mongo_ready = False
 
