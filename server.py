@@ -230,7 +230,7 @@ def api_admin_users():
 def api_admin_recent_actions():
     """管理后台全站最近行为记录"""
     limit = request.args.get('limit', 50, type=int)
-    actions = db._query('user_actions', '*', order='created_at desc', limit=limit)
+    actions = db._query('user_actions', '*', order='created_at.desc', limit=limit)
     
     results = []
     for a in actions:
@@ -260,7 +260,7 @@ def api_admin_user_detail(user_id):
     user = user_data[0]
     
     # 用户行为记录（最近 100 条）
-    actions = db._query('user_actions', '*', {'user_id': ('eq', user_id)}, order='created_at desc', limit=100)
+    actions = db._query('user_actions', '*', {'user_id': ('eq', user_id)}, order='created_at.desc', limit=100)
     user['actions'] = []
     for a in actions:
         r = dict(a)

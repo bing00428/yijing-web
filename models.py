@@ -136,6 +136,7 @@ def _query(table, columns='*', filters=None, order=None, limit=None, offset=None
             for col, (op, val) in filters.items():
                 url += f'&{col}={op}.{requests.utils.quote(str(val))}'
         if order:
+            # Supabase 要求 order=col.desc 或 order=col.asc
             url += f'&order={requests.utils.quote(order)}'
         if limit:
             url += f'&limit={limit}'
@@ -528,7 +529,7 @@ def get_hexagram_records(user_id, limit=50, offset=0):
         records = _query(
             'hexagram_records', '*',
             {'user_id': ('eq', user_id)},
-            order='created_at desc',
+            order='created_at.desc',
             limit=limit,
             offset=offset
         )
@@ -574,7 +575,7 @@ def get_fengshui_records(user_id, limit=50, offset=0):
         records = _query(
             'fengshui_records', '*',
             {'user_id': ('eq', user_id)},
-            order='created_at desc',
+            order='created_at.desc',
             limit=limit,
             offset=offset
         )
@@ -629,7 +630,7 @@ def get_favorites(user_id):
         favorites = _query(
             'user_favorites', '*',
             {'user_id': ('eq', user_id)},
-            order='created_at desc'
+            order='created_at.desc'
         )
         
         results = []
