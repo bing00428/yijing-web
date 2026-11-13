@@ -10,7 +10,11 @@ run:
   envVars:
     - key: PYTHON_VERSION
       value: 3.11.0
-    - key: MONGODB_URI
+    - key: SUPABASE_PROJECT_REF
+      value: qkxzmmqhewhpflgyuoud
+    - key: SUPABASE_DB_PASSWORD
       sync: false
-    - key: MONGODB_DB
-      value: yijing_web
+    - key: SUPABASE_DB_HOST
+      value: aws-0-us-east-1.pooler.supabase.com
+    - key: SUPABASE_DB_PORT
+      value: "5432"

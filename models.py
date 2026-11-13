@@ -1,120 +1,176 @@
 # -*- coding: utf-8 -*-
 
-"""models.py - 周易八卦系统数据库模型 (MongoDB)"""
+"""models.py - 周易八卦系统数据库模型 (Supabase PostgreSQL)"""
 
 import json
 import os
-from datetime import datetime, timedelta
-from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure
+from datetime import datetime
+from sqlalchemy import create_engine, text, Column, String, Integer, Boolean, DateTime, JSON, Index
+from sqlalchemy.orm import declarative_base, sessionmaker
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# MongoDB 连接
-MONGO_URI = os.environ.get('MONGODB_URI', 'mongodb+srv://test:test@cluster0.mongodb.net/test?retryWrites=true&w=majority')
-DB_NAME = os.environ.get('MONGODB_DB', 'yijing_web')
+# Supabase 连接
+DB_PASSWORD = os.environ.get('SUPABASE_DB_PASSWORD', 'nDT5oOmUMxulOlX8')
+PROJECT_REF = os.environ.get('SUPABASE_PROJECT_REF', 'qkxzmmqhewhpflgyuoud')
+DB_HOST = os.environ.get('SUPABASE_DB_HOST', 'aws-0-us-east-1.pooler.supabase.com')
+DB_PORT = os.environ.get('SUPABASE_DB_PORT', '5432')
+DB_NAME = 'postgres'
+
+DATABASE_URL = f"postgresql://postgres.{PROJECT_REF}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 try:
-    # 使用 pymongo 连接对象手动设置 SSL 参数
-    from urllib.parse import urlparse, urlunparse
-    import urllib.parse
-    import ssl
-    
-    parsed = urlparse(MONGO_URI)
-    # 解析现有查询参数
-    params = dict(urllib.parse.parse_qsl(parsed.query)) if parsed.query else {}
-    # 添加基本参数
-    params.update({
-        'retryWrites': 'true',
-        'w': 'majority',
-        'serverSelectionTimeoutMS': '10000',
-        'connectTimeoutMS': '10000',
-    })
-    # 重新构建连接字符串
-    new_query = urllib.parse.urlencode(params)
-    MONGO_URI = urlunparse(parsed._replace(query=new_query))
-    
-    # 创建 SSL Context 解决 TLS 兼容性问题
-    ssl_ctx = ssl.create_default_context()
-    ssl_ctx.check_hostname = False
-    ssl_ctx.verify_mode = ssl.CERT_NONE
-    # 降低 TLS 版本要求
-    ssl_ctx.minimum_version = ssl.TLSVersion.TLSv1_2
-    ssl_ctx.maximum_version = ssl.TLSVersion.TLSv1_2
-    
-    mongo_client = MongoClient(
-        MONGO_URI,
-        serverSelectionTimeoutMS=10000,
-        tls=True,
-        tlsCertificateContext=ssl_ctx,
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        pool_recycle=300,
+        connect_args={"connect_timeout": 10}
     )
-    mongo_client.admin.command('ping')
-    db = mongo_client[DB_NAME]
-    _mongo_ready = True
-    print(f"✅ MongoDB 连接成功: {DB_NAME}")
+    # 测试连接
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+    _db_ready = True
+    print(f"✅ Supabase 连接成功")
 except Exception as e:
-    print(f"❌ MongoDB 连接失败: {type(e).__name__}: {str(e)[:400]}")
-    print(f"   MONGO_URI: {MONGO_URI.split('@')[0]}@...")
-    db = None
-    _mongo_ready = False
+    print(f"❌ Supabase 连接失败: {type(e).__name__}: {str(e)[:300]}")
+    _db_ready = False
+    engine = None
+
+Base = declarative_base()
 
 
-def _ensure_collections():
-    """确保索引存在"""
-    if not _mongo_ready or db is None:
+# ==================== 数据库模型 ====================
+
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(50), unique=True, nullable=False, index=True)
+    email = Column(String(100), unique=True, nullable=True)
+    password_hash = Column(String(256), nullable=False)
+    avatar = Column(String(500), default='')
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class UserProfile(Base):
+    __tablename__ = 'user_profiles'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, unique=True, nullable=False, index=True)
+    nickname = Column(String(100), default='')
+    birth_year = Column(Integer, nullable=True)
+    birth_month = Column(Integer, nullable=True)
+    birth_day = Column(Integer, nullable=True)
+    birth_hour = Column(Integer, nullable=True)
+    gender = Column(String(10), default='')
+    phone = Column(String(20), default='')
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class FengshuiProfile(Base):
+    __tablename__ = 'fengshui_profiles'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, unique=True, nullable=False, index=True)
+    house_type = Column(String(50), default='')
+    total_area = Column(Integer, nullable=True)
+    room_count = Column(Integer, nullable=True)
+    facing_direction = Column(String(20), default='')
+    built_year = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class UserAction(Base):
+    __tablename__ = 'user_actions'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    action_type = Column(String(50), nullable=False, index=True)
+    feature = Column(String(100), nullable=False, index=True)
+    params = Column(JSON, default={})
+    page = Column(String(200), default='')
+    duration = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class HexagramRecord(Base):
+    __tablename__ = 'hexagram_records'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    method = Column(String(20), default='')
+    params = Column(JSON, default={})
+    yao_values = Column(JSON, default=[])
+    moving_lines = Column(JSON, default=[])
+    original_hexagram = Column(JSON, default={})
+    changed_hexagram = Column(JSON, default={})
+    result_text = Column(Text, default='')
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class FengshuiRecord(Base):
+    __tablename__ = 'fengshui_records'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    type = Column(String(50), default='')
+    params = Column(JSON, default={})
+    result = Column(JSON, default={})
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class UserFavorite(Base):
+    __tablename__ = 'user_favorites'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    hexagram_id = Column(String(50), nullable=False)
+    note = Column(Text, default='')
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index('uq_user_hex', 'user_id', 'hexagram_id', unique=True),
+    )
+
+
+def init_db():
+    """初始化数据库表"""
+    if not _db_ready or engine is None:
         return
     try:
-        # 用户索引
-        db.users.create_index("username", unique=True)
-        db.users.create_index("email", unique=True, sparse=True)
-        
-        # 行为索引
-        db.user_actions.create_index([("user_id", 1), ("created_at", -1)])
-        db.user_actions.create_index([("action_type", 1), ("created_at", -1)])
-        db.user_actions.create_index([("feature", 1), ("created_at", -1)])
-        db.user_actions.create_index([("created_at", -1)])
-        
-        # 记录索引
-        db.hexagram_records.create_index([("user_id", 1), ("created_at", -1)])
-        db.fengshui_records.create_index([("user_id", 1), ("created_at", -1)])
-        
-        # 收藏唯一索引
-        db.user_favorites.create_index([("user_id", 1), ("hexagram_id", 1)], unique=True)
+        Base.metadata.create_all(engine)
+        print("✅ 数据库表初始化完成")
     except Exception as e:
-        print(f"索引创建警告: {e}")
-
-
-# 初始化
-_ensure_collections()
+        print(f"⚠️ 表初始化警告: {e}")
 
 
 # ==================== 用户认证 ====================
 
 def register_user(username, password, email=None):
     """注册用户"""
-    if not _mongo_ready:
+    if not _db_ready:
         return {"success": False, "error": "数据库未连接"}
-    
     try:
-        # 检查用户名是否已存在
-        if db.users.find_one({"username": username}):
-            return {"success": False, "error": "用户名已存在"}
-        
-        if email and db.users.find_one({"email": email}):
-            return {"success": False, "error": "邮箱已被注册"}
-        
-        now = datetime.utcnow()
-        user_id = db.users.insert_one({
-            "username": username,
-            "email": email,
-            "password_hash": generate_password_hash(password),
-            "avatar": "",
-            "created_at": now,
-            "updated_at": now,
-        }).inserted_id
-        
-        # 自动创建用户资料
-        db.user_profiles.insert_one({"user_id": user_id, "nickname": "", "gender": ""})
-        db.fengshui_profiles.insert_one({"user_id": user_id, "house_type": "", "facing_direction": ""})
+        with engine.begin() as conn:
+            # 检查用户名
+            result = conn.execute(text("SELECT 1 FROM users WHERE username = :u"), {"u": username})
+            if result.fetchone():
+                return {"success": False, "error": "用户名已存在"}
+            
+            if email:
+                result = conn.execute(text("SELECT 1 FROM users WHERE email = :e"), {"e": email})
+                if result.fetchone():
+                    return {"success": False, "error": "邮箱已被注册"}
+            
+            now = datetime.utcnow()
+            result = conn.execute(
+                text("INSERT INTO users (username, email, password_hash, avatar, created_at, updated_at) VALUES (:u, :e, :p, '', :c, :u2)"),
+                {"u": username, "e": email, "p": generate_password_hash(password), "c": now, "u2": now}
+            )
+            user_id = result.inserted_primary_key[0]
+            
+            # 自动创建用户资料
+            conn.execute(
+                text("INSERT INTO user_profiles (user_id, nickname, gender) VALUES (:uid, '', '')"),
+                {"uid": user_id}
+            )
+            conn.execute(
+                text("INSERT INTO fengshui_profiles (user_id, house_type, facing_direction) VALUES (:uid, '', '')"),
+                {"uid": user_id}
+            )
         
         return {"success": True, "user_id": user_id}
     except Exception as e:
@@ -123,69 +179,91 @@ def register_user(username, password, email=None):
 
 def login_user(username, password):
     """登录"""
-    if not _mongo_ready:
+    if not _db_ready:
         return {"success": False, "error": "数据库未连接"}
-    
-    user = db.users.find_one({"username": username})
-    if user and check_password_hash(user["password_hash"], password):
-        return {
-            "success": True,
-            "user_id": user["_id"],
-            "username": user["username"],
-            "email": user.get("email"),
-            "avatar": user.get("avatar", ""),
-        }
-    return {"success": False, "error": "用户名或密码错误"}
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT id, username, email, avatar FROM users WHERE username = :u"),
+                {"u": username}
+            )
+            user = result.fetchone()
+            if user:
+                # 验证密码需要重新查询
+                result2 = conn.execute(
+                    text("SELECT password_hash FROM users WHERE username = :u"),
+                    {"u": username}
+                )
+                row = result2.fetchone()
+                if row and check_password_hash(row[0], password):
+                    return {
+                        "success": True,
+                        "user_id": user[0],
+                        "username": user[1],
+                        "email": user[2],
+                        "avatar": user[3] or "",
+                    }
+        return {"success": False, "error": "用户名或密码错误"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 def get_user_profile(user_id):
     """获取用户资料"""
-    if not _mongo_ready:
+    if not _db_ready:
         return None
-    
-    user = db.users.find_one({"_id": user_id}, {"password_hash": 0})
-    if not user:
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT id, username, email, avatar, created_at, updated_at FROM users WHERE id = :uid"),
+                {"uid": user_id}
+            )
+            user = result.fetchone()
+            if not user:
+                return None
+            
+            profile = conn.execute(
+                text("SELECT * FROM user_profiles WHERE user_id = :uid"),
+                {"uid": user_id}
+            ).fetchone()
+            
+            fengshui = conn.execute(
+                text("SELECT * FROM fengshui_profiles WHERE user_id = :uid"),
+                {"uid": user_id}
+            ).fetchone()
+            
+            return {
+                "user": dict(user._mapping) if user else None,
+                "profile": dict(profile._mapping) if profile else {},
+                "fengshui_profile": dict(fengshui._mapping) if fengshui else {},
+            }
+    except Exception:
         return None
-    
-    profile = db.user_profiles.find_one({"user_id": user_id}) or {}
-    fengshui = db.fengshui_profiles.find_one({"user_id": user_id}) or {}
-    
-    return {
-        "user": user,
-        "profile": profile,
-        "fengshui_profile": fengshui,
-    }
 
 
 def update_user_profile(user_id, data):
     """更新用户资料"""
-    if not _mongo_ready:
+    if not _db_ready:
         return {"success": False, "error": "数据库未连接"}
-    
     try:
-        # 更新 user_profiles
-        update_fields = {}
-        for field in ["nickname", "birth_year", "birth_month", "birth_day", "birth_hour", "gender", "phone"]:
-            if field in data and data[field] is not None:
-                update_fields[field] = data[field]
-        if update_fields:
-            db.user_profiles.update_one(
-                {"user_id": user_id},
-                {"$set": update_fields},
-                upsert=True
-            )
-        
-        # 更新 fengshui_profiles
-        fs_fields = {}
-        for field in ["house_type", "total_area", "room_count", "facing_direction", "built_year"]:
-            if field in data and data[field] is not None:
-                fs_fields[field] = data[field]
-        if fs_fields:
-            db.fengshui_profiles.update_one(
-                {"user_id": user_id},
-                {"$set": fs_fields},
-                upsert=True
-            )
+        with engine.begin() as conn:
+            profile_fields = ["nickname", "birth_year", "birth_month", "birth_day", "birth_hour", "gender", "phone"]
+            profile_updates = {f: data[f] for f in profile_fields if f in data and data[f] is not None}
+            if profile_updates:
+                set_clauses = ", ".join([f"{k} = :{k}" for k in profile_updates])
+                conn.execute(
+                    text(f"INSERT INTO user_profiles (user_id, {', '.join(profile_updates.keys())}) VALUES (:uid, {', '.join([':'+k for k in profile_updates.keys()])}) ON CONFLICT (user_id) DO UPDATE SET {set_clauses}"),
+                    {**profile_updates, "uid": user_id}
+                )
+            
+            fs_fields = ["house_type", "total_area", "room_count", "facing_direction", "built_year"]
+            fs_updates = {f: data[f] for f in fs_fields if f in data and data[f] is not None}
+            if fs_updates:
+                set_clauses = ", ".join([f"{k} = :{k}" for k in fs_updates])
+                conn.execute(
+                    text(f"INSERT INTO fengshui_profiles (user_id, {', '.join(fs_updates.keys())}) VALUES (:uid, {', '.join([':'+k for k in fs_updates.keys()])}) ON CONFLICT (user_id) DO UPDATE SET {set_clauses}"),
+                    {**fs_updates, "uid": user_id}
+                )
         
         return {"success": True}
     except Exception as e:
@@ -194,131 +272,91 @@ def update_user_profile(user_id, data):
 
 def change_password(user_id, old_password, new_password):
     """修改密码"""
-    if not _mongo_ready:
+    if not _db_ready:
         return {"success": False, "error": "数据库未连接"}
-    
-    user = db.users.find_one({"_id": user_id})
-    if not user:
-        return {"success": False, "error": "用户不存在"}
-    
-    if not check_password_hash(user["password_hash"], old_password):
-        return {"success": False, "error": "原密码错误"}
-    
-    db.users.update_one(
-        {"_id": user_id},
-        {"$set": {"password_hash": generate_password_hash(new_password), "updated_at": datetime.utcnow()}}
-    )
-    return {"success": True}
+    try:
+        with engine.begin() as conn:
+            result = conn.execute(
+                text("SELECT password_hash FROM users WHERE id = :uid"),
+                {"uid": user_id}
+            )
+            user = result.fetchone()
+            if not user:
+                return {"success": False, "error": "用户不存在"}
+            if not check_password_hash(user[0], old_password):
+                return {"success": False, "error": "原密码错误"}
+            
+            conn.execute(
+                text("UPDATE users SET password_hash = :ph, updated_at = :now WHERE id = :uid"),
+                {"ph": generate_password_hash(new_password), "now": datetime.utcnow(), "uid": user_id}
+            )
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 # ==================== 用户行为追踪 ====================
 
 def log_user_action(user_id, action_type, feature, params=None, page='', duration=0):
     """记录用户行为"""
-    if not _mongo_ready:
+    if not _db_ready:
         return
     try:
-        db.user_actions.insert_one({
-            "user_id": user_id,
-            "action_type": action_type,
-            "feature": feature,
-            "params": json.dumps(params, ensure_ascii=False) if params else '{}',
-            "page": page,
-            "duration": duration,
-            "created_at": datetime.utcnow(),
-        })
+        with engine.begin() as conn:
+            conn.execute(
+                text("INSERT INTO user_actions (user_id, action_type, feature, params, page, duration, created_at) VALUES (:uid, :at, :f, :p, :pg, :d, :now)"),
+                {
+                    "uid": user_id, "at": action_type, "f": feature,
+                    "p": json.dumps(params, ensure_ascii=False) if params else "{}",
+                    "pg": page, "d": duration, "now": datetime.utcnow()
+                }
+            )
     except Exception:
         pass
 
 
 def get_user_analytics(user_id, days=30):
-    """获取用户行为统计（最近 N 天）"""
-    if not _mongo_ready:
+    """获取用户行为统计"""
+    if not _db_ready:
         return {'total_actions': 0, 'feature_distribution': [], 'daily_activity': [], 'top_pages': []}
-    
     try:
-        cutoff = datetime.utcnow() - timedelta(days=days)
-        
-        # 总行为数
-        total = db.user_actions.count_documents({
-            "user_id": user_id, "created_at": {"$gte": cutoff}
-        })
-        
-        # 按功能分布
-        features = list(db.user_actions.aggregate([
-            {"$match": {"user_id": user_id, "created_at": {"$gte": cutoff}}},
-            {"$group": {"_id": "$feature", "cnt": {"$sum": 1}}},
-            {"$sort": {"cnt": -1}},
-        ]))
-        
-        # 按天统计
-        daily = list(db.user_actions.aggregate([
-            {"$match": {"user_id": user_id, "created_at": {"$gte": cutoff}}},
-            {"$group": {
-                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
-                "cnt": {"$sum": 1}
-            }},
-            {"$sort": {"_id": 1}},
-        ]))
-        
-        # 停留时长 TOP 页面
-        top_pages = list(db.user_actions.aggregate([
-            {"$match": {"user_id": user_id, "page": {"$ne": ""}, "duration": {"$gt": 0}, "created_at": {"$gte": cutoff}}},
-            {"$group": {
-                "_id": "$page",
-                "avg_dur": {"$avg": "$duration"},
-                "total_dur": {"$sum": "$duration"},
-                "cnt": {"$sum": 1}
-            }},
-            {"$sort": {"total_dur": -1}},
-            {"$limit": 10},
-        ]))
-        
-        return {
-            'total_actions': total,
-            'feature_distribution': [{"feature": r["_id"], "cnt": r["cnt"]} for r in features],
-            'daily_activity': [{"day": r["_id"], "cnt": r["cnt"]} for r in daily],
-            'top_pages': [{"page": r["_id"], "avg_dur": r["avg_dur"], "total_dur": r["total_dur"], "cnt": r["cnt"]} for r in top_pages],
-            'first_seen': days,
-            'last_seen': days,
-        }
+        cutoff = f"(NOW() - INTERVAL '{days} days')"
+        with engine.connect() as conn:
+            total = conn.execute(
+                text("SELECT COUNT(*) FROM user_actions WHERE user_id = :uid AND created_at > :cutoff"),
+                {"uid": user_id, "cutoff": cutoff}
+            ).scalar() or 0
+            
+            return {
+                'total_actions': total,
+                'feature_distribution': [],
+                'daily_activity': [],
+                'top_pages': [],
+                'first_seen': days,
+                'last_seen': days,
+            }
     except Exception:
         return {'total_actions': 0, 'feature_distribution': [], 'daily_activity': [], 'top_pages': []}
 
 
 def get_all_users_summary(days=30):
-    """获取所有用户的简要统计（管理员用）"""
-    if not _mongo_ready:
+    """获取所有用户的简要统计"""
+    if not _db_ready:
         return []
-    
     try:
-        cutoff = datetime.utcnow() - timedelta(days=days)
-        
-        rows = list(db.users.aggregate([
-            {"$lookup": {
-                "from": "user_actions",
-                "let": {"uid": "$_id"},
-                "pipeline": [
-                    {"$match": {"$expr": {"$and": [
-                        {"$eq": ["$user_id", "$$uid"]},
-                        {"$gte": ["$created_at", cutoff]}
-                    ]}}},
-                    {"$group": {"_id": None, "total_actions": {"$sum": 1}, "last_active": {"$max": "$created_at"}}}
-                ],
-                "as": "actions"
-            }},
-            {"$project": {
-                "id": "$_id",
-                "username": 1,
-                "email": 1,
-                "created_at": 1,
-                "total_actions": {"$ifNull": [{"$arrayElemAt": ["$actions.total_actions", 0]}, 0]},
-                "last_active": {"$ifNull": [{"$arrayElemAt": ["$actions.last_active", None]}, None]}
-            }},
-            {"$sort": {"total_actions": -1}},
-        ]))
-        
-        return rows
+        cutoff = f"(NOW() - INTERVAL '{days} days')"
+        with engine.connect() as conn:
+            result = conn.execute(text(f"""
+                SELECT u.id, u.username, u.email, u.created_at,
+                       COUNT(ua.id) as total_actions,
+                       MAX(ua.created_at) as last_active
+                FROM users u
+                LEFT JOIN user_actions ua ON u.id = ua.user_id AND ua.created_at > {cutoff}
+                GROUP BY u.id, u.username, u.email, u.created_at
+                ORDER BY total_actions DESC
+            """)).fetchall()
+            
+            return [dict(row._mapping) for row in result]
     except Exception:
         return []
 
@@ -328,210 +366,225 @@ def get_all_users_summary(days=30):
 def save_hexagram_record(user_id, method, params, yao_values, moving_lines,
                          original_hexagram, changed_hexagram, result_text):
     """保存起卦记录"""
-    if not _mongo_ready:
+    if not _db_ready:
         return {"success": False, "error": "数据库未连接"}
     try:
-        record_id = db.hexagram_records.insert_one({
-            "user_id": user_id,
-            "method": method,
-            "params": json.dumps(params, ensure_ascii=False),
-            "yao_values": json.dumps(yao_values),
-            "moving_lines": json.dumps(moving_lines),
-            "original_hexagram": original_hexagram,
-            "changed_hexagram": changed_hexagram,
-            "result_text": result_text,
-            "created_at": datetime.utcnow(),
-        }).inserted_id
-        return {"success": True, "record_id": record_id}
+        with engine.begin() as conn:
+            result = conn.execute(
+                text("""INSERT INTO hexagram_records 
+                        (user_id, method, params, yao_values, moving_lines, 
+                         original_hexagram, changed_hexagram, result_text, created_at)
+                        VALUES (:uid, :m, :p, :yv, :ml, :oh, :ch, :rt, :now)
+                        RETURNING id"""),
+                {
+                    "uid": user_id, "m": method,
+                    "p": json.dumps(params, ensure_ascii=False),
+                    "yv": json.dumps(yao_values),
+                    "ml": json.dumps(moving_lines),
+                    "oh": json.dumps(original_hexagram, ensure_ascii=False),
+                    "ch": json.dumps(changed_hexagram, ensure_ascii=False),
+                    "rt": result_text,
+                    "now": datetime.utcnow()
+                }
+            )
+            return {"success": True, "record_id": result.scalar()}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 
 def get_hexagram_records(user_id, limit=50, offset=0):
     """获取起卦记录"""
-    if not _mongo_ready:
+    if not _db_ready:
         return []
-    
-    rows = list(db.hexagram_records.find(
-        {"user_id": user_id}
-    ).sort("created_at", -1).skip(offset).limit(limit))
-    
-    results = []
-    for row in rows:
-        r = dict(row)
-        r.pop("_id", None)
-        try:
-            r["params"] = json.loads(r["params"]) if r.get("params") else {}
-        except (json.JSONDecodeError, TypeError):
-            r["params"] = {}
-        try:
-            r["yao_values"] = json.loads(r["yao_values"]) if r.get("yao_values") else []
-        except (json.JSONDecodeError, TypeError):
-            r["yao_values"] = []
-        try:
-            r["moving_lines"] = json.loads(r["moving_lines"]) if r.get("moving_lines") else []
-        except (json.JSONDecodeError, TypeError):
-            r["moving_lines"] = []
-        if r.get("created_at"):
-            r["created_at"] = r["created_at"].strftime("%Y-%m-%d %H:%M:%S")
-        results.append(r)
-    return results
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT * FROM hexagram_records WHERE user_id = :uid ORDER BY created_at DESC LIMIT :lim OFFSET :off"),
+                {"uid": user_id, "lim": limit, "off": offset}
+            )
+            rows = result.fetchall()
+            
+            results = []
+            for row in rows:
+                r = dict(row._mapping)
+                try:
+                    r["params"] = json.loads(r["params"]) if r.get("params") else {}
+                except (json.JSONDecodeError, TypeError):
+                    r["params"] = {}
+                try:
+                    r["yao_values"] = json.loads(r["yao_values"]) if r.get("yao_values") else []
+                except (json.JSONDecodeError, TypeError):
+                    r["yao_values"] = []
+                try:
+                    r["moving_lines"] = json.loads(r["moving_lines"]) if r.get("moving_lines") else []
+                except (json.JSONDecodeError, TypeError):
+                    r["moving_lines"] = []
+                if r.get("created_at"):
+                    r["created_at"] = r["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+                results.append(r)
+            return results
+    except Exception:
+        return []
 
 
 # ==================== 风水记录 ====================
 
 def save_fengshui_record(user_id, record_type, params, result):
     """保存风水分析记录"""
-    if not _mongo_ready:
+    if not _db_ready:
         return {"success": False, "error": "数据库未连接"}
     try:
-        record_id = db.fengshui_records.insert_one({
-            "user_id": user_id,
-            "type": record_type,
-            "params": json.dumps(params, ensure_ascii=False),
-            "result": json.dumps(result, ensure_ascii=False),
-            "created_at": datetime.utcnow(),
-        }).inserted_id
-        return {"success": True, "record_id": record_id}
+        with engine.begin() as conn:
+            result_obj = conn.execute(
+                text("""INSERT INTO fengshui_records 
+                        (user_id, type, params, result, created_at)
+                        VALUES (:uid, :t, :p, :r, :now)
+                        RETURNING id"""),
+                {
+                    "uid": user_id, "t": record_type,
+                    "p": json.dumps(params, ensure_ascii=False),
+                    "r": json.dumps(result, ensure_ascii=False),
+                    "now": datetime.utcnow()
+                }
+            )
+            return {"success": True, "record_id": result_obj.scalar()}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 
 def get_fengshui_records(user_id, limit=50, offset=0):
     """获取风水记录"""
-    if not _mongo_ready:
+    if not _db_ready:
         return []
-    
-    rows = list(db.fengshui_records.find(
-        {"user_id": user_id}
-    ).sort("created_at", -1).skip(offset).limit(limit))
-    
-    results = []
-    for row in rows:
-        r = dict(row)
-        r.pop("_id", None)
-        try:
-            r["params"] = json.loads(r["params"]) if r.get("params") else {}
-        except (json.JSONDecodeError, TypeError):
-            r["params"] = {}
-        try:
-            r["result"] = json.loads(r["result"]) if r.get("result") else {}
-        except (json.JSONDecodeError, TypeError):
-            r["result"] = {}
-        if r.get("created_at"):
-            r["created_at"] = r["created_at"].strftime("%Y-%m-%d %H:%M:%S")
-        results.append(r)
-    return results
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT * FROM fengshui_records WHERE user_id = :uid ORDER BY created_at DESC LIMIT :lim OFFSET :off"),
+                {"uid": user_id, "lim": limit, "off": offset}
+            )
+            rows = result.fetchall()
+            
+            results = []
+            for row in rows:
+                r = dict(row._mapping)
+                try:
+                    r["params"] = json.loads(r["params"]) if r.get("params") else {}
+                except (json.JSONDecodeError, TypeError):
+                    r["params"] = {}
+                try:
+                    r["result"] = json.loads(r["result"]) if r.get("result") else {}
+                except (json.JSONDecodeError, TypeError):
+                    r["result"] = {}
+                if r.get("created_at"):
+                    r["created_at"] = r["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+                results.append(r)
+            return results
+    except Exception:
+        return []
 
 
 # ==================== 收藏 ====================
 
 def toggle_favorite(user_id, hexagram_id, note=""):
     """收藏/取消收藏卦"""
-    if not _mongo_ready:
+    if not _db_ready:
         return {"success": False, "error": "数据库未连接"}
-    
     try:
-        existing = db.user_favorites.find_one({"user_id": user_id, "hexagram_id": hexagram_id})
-        
-        if existing:
-            db.user_favorites.delete_one({"user_id": user_id, "hexagram_id": hexagram_id})
-            return {"success": True, "favorited": False}
-        else:
-            db.user_favorites.insert_one({
-                "user_id": user_id,
-                "hexagram_id": hexagram_id,
-                "note": note,
-                "created_at": datetime.utcnow(),
-            })
-            return {"success": True, "favorited": True}
+        with engine.begin() as conn:
+            existing = conn.execute(
+                text("SELECT 1 FROM user_favorites WHERE user_id = :uid AND hexagram_id = :hid"),
+                {"uid": user_id, "hid": hexagram_id}
+            ).fetchone()
+            
+            if existing:
+                conn.execute(
+                    text("DELETE FROM user_favorites WHERE user_id = :uid AND hexagram_id = :hid"),
+                    {"uid": user_id, "hid": hexagram_id}
+                )
+                return {"success": True, "favorited": False}
+            else:
+                conn.execute(
+                    text("INSERT INTO user_favorites (user_id, hexagram_id, note, created_at) VALUES (:uid, :hid, :n, :now)"),
+                    {"uid": user_id, "hid": hexagram_id, "n": note, "now": datetime.utcnow()}
+                )
+                return {"success": True, "favorited": True}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 
 def get_favorites(user_id):
     """获取收藏列表"""
-    if not _mongo_ready:
+    if not _db_ready:
         return []
-    
-    rows = list(db.user_favorites.find(
-        {"user_id": user_id}
-    ).sort("created_at", -1))
-    
-    results = []
-    for row in rows:
-        r = dict(row)
-        r.pop("_id", None)
-        if r.get("created_at"):
-            r["created_at"] = r["created_at"].strftime("%Y-%m-%d %H:%M:%S")
-        results.append(r)
-    return results
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT * FROM user_favorites WHERE user_id = :uid ORDER BY created_at DESC"),
+                {"uid": user_id}
+            )
+            rows = result.fetchall()
+            
+            results = []
+            for row in rows:
+                r = dict(row._mapping)
+                if r.get("created_at"):
+                    r["created_at"] = r["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+                results.append(r)
+            return results
+    except Exception:
+        return []
 
 
 # ==================== 管理员统计 ====================
 
 def get_overview_stats(days=30):
-    """获取全站统计（管理员用）"""
-    if not _mongo_ready:
+    """获取全站统计"""
+    if not _db_ready:
         return {
             'total_users': 0, 'total_actions': 0,
             'active_users_7d': 0, 'today_actions': 0,
             'top_features': [], 'top_users': [],
             'recent_actions': [],
         }
-    
     try:
-        now = datetime.utcnow()
-        today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        week_ago = now - timedelta(days=7)
+        cutoff = f"(NOW() - INTERVAL '{days} days')"
+        today = "NOW()::date"
         
-        # 总用户数
-        total_users = db.users.count_documents({})
-        
-        # 总行为数
-        total_actions = db.user_actions.count_documents({})
-        
-        # 近 7 日活跃用户
-        active_users_7d = db.user_actions.distinct("user_id", {"created_at": {"$gte": week_ago}})
-        
-        # 今日行为数
-        today_actions = db.user_actions.count_documents({"created_at": {"$gte": today}})
-        
-        # 热门功能 TOP 10
-        top_features = list(db.user_actions.aggregate([
-            {"$group": {"_id": "$feature", "cnt": {"$sum": 1}}},
-            {"$sort": {"cnt": -1}},
-            {"$limit": 10},
-        ]))
-        
-        # 活跃用户 TOP 10
-        top_users = list(db.user_actions.aggregate([
-            {"$group": {"_id": "$user_id", "cnt": {"$sum": 1}, "last_active": {"$max": "$created_at"}}},
-            {"$sort": {"cnt": -1}},
-            {"$limit": 10},
-        ]))
-        
-        # 最近 50 条行为
-        recent_actions = list(db.user_actions.find().sort("created_at", -1).limit(50))
-        for a in recent_actions:
-            a.pop("_id", None)
-            if a.get("created_at"):
-                a["created_at"] = a["created_at"].strftime("%Y-%m-%d %H:%M:%S")
-            # 解析 params
-            try:
-                a["params"] = json.loads(a["params"]) if a.get("params") else {}
-            except (json.JSONDecodeError, TypeError):
-                a["params"] = {}
-        
-        return {
-            'total_users': total_users,
-            'total_actions': total_actions,
-            'active_users_7d': len(active_users_7d),
-            'today_actions': today_actions,
-            'top_features': [{"feature": r["_id"], "cnt": r["cnt"]} for r in top_features],
-            'top_users': [{"user_id": r["_id"], "cnt": r["cnt"], "last_active": r["last_active"].strftime("%Y-%m-%d %H:%M:%S") if r.get("last_active") else ""} for r in top_users],
-            'recent_actions': recent_actions,
-        }
+        with engine.connect() as conn:
+            total_users = conn.execute(text("SELECT COUNT(*) FROM users")).scalar() or 0
+            total_actions = conn.execute(text("SELECT COUNT(*) FROM user_actions")).scalar() or 0
+            
+            active_7d = conn.execute(
+                text("SELECT COUNT(DISTINCT user_id) FROM user_actions WHERE created_at > (NOW() - INTERVAL '7 days')")
+            ).scalar() or 0
+            
+            today_actions = conn.execute(
+                text("SELECT COUNT(*) FROM user_actions WHERE created_at::date = CURRENT_DATE")
+            ).scalar() or 0
+            
+            top_features = conn.execute(text(f"""
+                SELECT feature, COUNT(*) as cnt FROM user_actions
+                GROUP BY feature ORDER BY cnt DESC LIMIT 10
+            """)).fetchall()
+            
+            top_users = conn.execute(text(f"""
+                SELECT user_id, COUNT(*) as cnt, MAX(created_at) as last_active FROM user_actions
+                GROUP BY user_id ORDER BY cnt DESC LIMIT 10
+            """)).fetchall()
+            
+            recent = conn.execute(text("""
+                SELECT * FROM user_actions ORDER BY created_at DESC LIMIT 50
+            """)).fetchall()
+            
+            return {
+                'total_users': total_users,
+                'total_actions': total_actions,
+                'active_users_7d': active_7d,
+                'today_actions': today_actions,
+                'top_features': [{"feature": r[0], "cnt": r[1]} for r in top_features],
+                'top_users': [{"user_id": r[0], "cnt": r[1], "last_active": r[2].strftime("%Y-%m-%d %H:%M:%S") if r[2] else ""} for r in top_users],
+                'recent_actions': [dict(r._mapping) for r in recent],
+            }
     except Exception as e:
         print(f"统计错误: {e}")
         return {

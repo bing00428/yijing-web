@@ -86,30 +86,15 @@ def admin_required(f):
     return decorated
 
 
-@app.route('/api/debug/mongo', methods=['GET'])
-def api_debug_mongo():
-    """调试：检查 MongoDB 连接状态"""
+@app.route('/api/debug/db', methods=['GET'])
+def api_debug_db():
+    """调试：检查数据库连接状态"""
     import os
-    import sys
-    result = {
-        'mongo_ready': db._mongo_ready,
-        'db_name': db.DB_NAME,
-        'mongo_uri_preview': db.MONGO_URI.split('@')[0] + '@...',
-        'collections': list(db.db.list_collection_names()) if db._mongo_ready else [],
-        'render_env': bool(os.environ.get('RENDER', False)),
-        'python_version': sys.version,
-        'pymongo_version': __import__('pymongo').version if 'pymongo' in sys.modules else 'checking',
+    return {
+        'db_ready': db._db_ready,
+        'project_ref': db.PROJECT_REF,
+        'db_host': db.DB_HOST,
     }
-    # 尝试获取实际连接错误
-    if not db._mongo_ready:
-        try:
-            from pymongo import MongoClient
-            from pymongo.errors import ConnectionFailure
-            client = MongoClient(db.MONGO_URI, serverSelectionTimeoutMS=3000)
-            client.server_info()
-        except Exception as e:
-            result['connection_error'] = f"{type(e).__name__}: {str(e)[:200]}"
-    return result
 
 
 @app.route('/admin')
