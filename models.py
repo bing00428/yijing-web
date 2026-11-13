@@ -14,12 +14,15 @@ MONGO_URI = os.environ.get('MONGODB_URI', 'mongodb+srv://test:test@cluster0.mong
 DB_NAME = os.environ.get('MONGODB_DB', 'yijing_web')
 
 try:
-    mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=10000)
     mongo_client.admin.command('ping')
     db = mongo_client[DB_NAME]
     _mongo_ready = True
-except ConnectionFailure:
-    print("⚠️ MongoDB 连接失败，使用内存回退")
+    print(f"✅ MongoDB 连接成功: {DB_NAME}")
+except Exception as e:
+    print(f"❌ MongoDB 连接失败: {e}")
+    print(f"   MONGODB_URI: {MONGO_URI.split('@')[0]}@...")
+    print(f"   MONGODB_DB: {DB_NAME}")
     db = None
     _mongo_ready = False
 
