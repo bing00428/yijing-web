@@ -4,6 +4,7 @@
 import sys
 import json
 import os
+import re
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, session
 
@@ -1016,7 +1017,7 @@ def api_jiuxing_search():
 
 @app.route('/api/auth/register', methods=['POST'])
 def api_auth_register():
-    """注册"""
+    """注册（邮箱必填，需验证后注册）"""
     data = request.json or {}
     username = data.get('username', '').strip()
     password = data.get('password', '')
@@ -1024,12 +1025,95 @@ def api_auth_register():
 
     if not username or not password:
         return jsonify({'success': False, 'error': '用户名和密码不能为空'})
+    
+    if not email:
+        return jsonify({'success': False, 'error': '邮箱不能为空'})
 
-    result = db.register_user(username, password, email)
-    if result['success']:
+    # 检查邮箱格式
+    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+        return jsonify({'success': False, 'error': '邮箱格式不正确'})
+
+    # 检查用户名是否已存在
+    users = db._query('users', 'id', {'username': ('eq', username)})
+    if users and len(users) > 0:
+        return jsonify({'success': False, 'error': '用户名已存在'})
+    
+    # 检查邮箱是否已注册
+    email_users = db._query('users', 'id', {'email': ('eq', email)})
+    if email_users and len(email_users) > 0:
+        return jsonify({'success': False, 'error': '邮箱已被注册'})
+
+    # 注册成功，发送验证码
+    code = db.generate_verification_code()
+    db.save_verification_code(email, code)
+    sent = db.send_verification_email(email, code)
+    
+    if sent:
+        return jsonify({
+            'success': True,
+            'message': '验证码已发送到您的邮箱',
+            'email': email,
+            'username': username,
+        })
+    else:
+        return jsonify({
+            'success': True,
+            'message': '验证码生成成功（邮件发送待确认）',
+            'email': email,
+            'username': username,
+            'note': '邮件服务未配置，验证码将在控制台输出',
+        })
+
+
+@app.route('/api/auth/send-verification', methods=['POST'])
+def api_auth_send_verification():
+    """重新发送验证码"""
+    data = request.json or {}
+    email = data.get('email', '').strip()
+    
+    if not email:
+        return jsonify({'success': False, 'error': '邮箱不能为空'})
+    
+    code = db.generate_verification_code()
+    db.save_verification_code(email, code)
+    sent = db.send_verification_email(email, code)
+    
+    if sent:
+        return jsonify({'success': True, 'message': '验证码已重新发送'})
+    else:
+        return jsonify({'success': True, 'message': '验证码生成成功'})
+
+
+@app.route('/api/auth/verify-email', methods=['POST'])
+def api_auth_verify_email():
+    """验证邮箱并注册"""
+    data = request.json or {}
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
+    email = data.get('email', '').strip()
+    code = data.get('code', '').strip()
+
+    if not username or not password or not email or not code:
+        return jsonify({'success': False, 'error': '请填写所有字段'})
+    
+    # 验证验证码
+    result = db.verify_code(email, code)
+    if not result['success']:
+        return jsonify(result)
+    
+    # 注册用户
+    user_result = db.register_user(username, password, email)
+    if user_result['success']:
+        # 标记邮箱已验证
+        db.mark_email_verified(user_result['user_id'])
         # 自动登录
-        session['user_id'] = result['user_id']
-    return jsonify(result)
+        session['user_id'] = user_result['user_id']
+        return jsonify({
+            'success': True,
+            'message': '注册成功',
+        })
+    
+    return jsonify(user_result)
 
 
 @app.route('/api/auth/login', methods=['POST'])

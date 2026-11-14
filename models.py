@@ -4,9 +4,25 @@
 
 import json
 import os
+import random
+import re
+import smtplib
+import ssl
+from datetime import datetime, timedelta
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from urllib.parse import quote_plus
 import requests
-from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# SMTP 邮件配置（通过环境变量配置）
+SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp.qq.com')
+SMTP_PORT = int(os.environ.get('SMTP_PORT', '465'))
+SMTP_USER = os.environ.get('SMTP_USER', '')
+SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
+SMTP_FROM_NAME = os.environ.get('SMTP_FROM_NAME', '周易八卦')
+SMTP_FROM_EMAIL = SMTP_USER
+SMTP_USE_TLS = os.environ.get('SMTP_USE_TLS', 'false').lower() == 'true'
 
 # Supabase 配置
 PROJECT_REF = os.environ.get('SUPABASE_PROJECT_REF', 'qkxzmmqhewhpflgyuoud')
@@ -744,3 +760,118 @@ def get_overview_stats(days=30):
     except Exception as e:
         print(f"统计错误: {e}")
         return default
+
+
+# ==================== 邮箱验证 ====================
+
+def generate_verification_code(length=6):
+    """生成随机验证码"""
+    return ''.join([str(random.randint(0, 9)) for _ in range(length)])
+
+
+def send_verification_email(email, code):
+    """发送验证码邮件"""
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = '"{}" <{}>'.format(SMTP_FROM_NAME, SMTP_FROM_EMAIL)
+        msg['To'] = email
+        msg['Subject'] = '[周易八卦] 邮箱验证验证码'
+        
+        body = """
+<html>
+<body>
+<h2>周易八卦 - 邮箱验证</h2>
+<p>您的验证验证码是：</p>
+<h1 style="color: #d4a843; letter-spacing: 8px; font-size: 2.5rem;">{code}</h1>
+<p>有效期 5 分钟，请勿告诉他人。</p>
+<p style="color: #999; font-size: 0.9rem;">如非本人操作，请忽略此邮件。</p>
+</body>
+</html>
+        """.format(code=code)
+        
+        msg.attach(MIMEText(body, 'html', 'utf-8'))
+        
+        if SMTP_USE_TLS:
+            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+            server.starttls(context=ssl.create_default_context())
+        else:
+            server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=ssl.create_default_context())
+        
+        if SMTP_USER and SMTP_PASSWORD:
+            server.login(SMTP_USER, SMTP_PASSWORD)
+        
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print("邮件发送失败: {}".format(e))
+        return False
+
+
+def save_verification_code(email, code):
+    """保存验证码到数据库"""
+    try:
+        expires_at = (datetime.utcnow() + timedelta(minutes=5)).isoformat()
+        _insert('email_verification_codes', {
+            'email': email,
+            'code': code,
+            'expires_at': expires_at,
+            'used': False,
+        })
+        return True
+    except Exception as e:
+        print("保存验证码失败: {}".format(e))
+        return False
+
+
+def verify_code(email, code):
+    """验证验证码"""
+    try:
+        # 查询最新的未使用验证码
+        records = _query('email_verification_codes', '*', {
+            'email': ('eq', email),
+            'code': ('eq', code),
+            'used': ('eq', False),
+        })
+        
+        if not records:
+            return {'success': False, 'error': '验证码错误'}
+        
+        record = records[0]
+        expires_at = datetime.fromisoformat(record['expires_at'])
+        
+        if datetime.utcnow() > expires_at:
+            return {'success': False, 'error': '验证码已过期'}
+        
+        # 标记为已使用
+        _query('email_verification_codes', 'id', {
+            'id': ('eq', record['id']),
+        })
+        # 通过更新记录来标记已使用
+        _update('email_verification_codes', record['id'], {'used': True})
+        
+        return {'success': True}
+    except Exception as e:
+        print("验证失败: {}".format(e))
+        return {'success': False, 'error': '验证失败'}
+
+
+def mark_email_verified(user_id):
+    """标记用户邮箱已验证"""
+    try:
+        _update('users', {'id': ('eq', user_id)}, {'email_verified': True})
+        return True
+    except Exception as e:
+        print("标记验证失败: {}".format(e))
+        return False
+
+
+def get_user_email(user_id):
+    """获取用户邮箱"""
+    try:
+        users = _query('users', 'email', {'id': ('eq', user_id)})
+        if users:
+            return users[0].get('email')
+        return None
+    except Exception:
+        return None
