@@ -1768,6 +1768,23 @@ body {
     box-shadow: var(--glow-accent);
 }
 
+.btn-auth-secondary {
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-family: var(--font-body);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-auth-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
 .auth-switch {
     text-align: center;
     margin-top: 1rem;

@@ -676,14 +676,16 @@
                 <h2>注册</h2>
                 <p>注册后自动登录，解锁全部功能（起卦、五行、风水、本命等）</p>
             </div>
-            <form onsubmit="doRegister(event)">
+            
+            <!-- 步骤 1: 填写信息 -->
+            <form id="reg-step1-form" onsubmit="regStep1(event)">
                 <div class="form-group">
                     <label>用户名</label>
                     <input type="text" id="reg-username" required minlength="2" maxlength="20" autocomplete="username" placeholder="2-20个字符">
                 </div>
                 <div class="form-group">
-                    <label>邮箱 <span class="optional">选填</span></label>
-                    <input type="email" id="reg-email" autocomplete="email" placeholder="用于找回密码">
+                    <label>邮箱 <span style="color:#e57373;">*</span></label>
+                    <input type="email" id="reg-email" required autocomplete="email" placeholder="用于邮箱验证">
                 </div>
                 <div class="form-group">
                     <label>密码</label>
@@ -694,9 +696,29 @@
                     <input type="password" id="reg-password2" required minlength="4" autocomplete="new-password" placeholder="再次输入密码">
                 </div>
                 <div id="reg-error" class="auth-error"></div>
-                <button type="submit" class="btn-auth-submit">注册</button>
+                <button type="submit" class="btn-auth-submit" id="reg-step1-btn">获取验证码</button>
             </form>
-            <p class="auth-switch">已有账号？<a href="javascript:void(0)" onclick="showLoginModal(); return false;">返回登录</a></p>
+            
+            <!-- 步骤 2: 验证码（默认隐藏） -->
+            <form id="reg-step2-form" onsubmit="regStep2(event)" style="display:none;">
+                <p style="text-align:center;color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem;">
+                    验证码已发送至 <span id="reg-email-display" style="color:var(--gold);"></span>
+                </p>
+                <div class="form-group">
+                    <label>验证码</label>
+                    <input type="text" id="reg-code" required maxlength="6" placeholder="6位数字验证码" style="letter-spacing:8px;text-align:center;font-size:1.5rem;">
+                </div>
+                <div id="reg-verify-error" class="auth-error"></div>
+                <div style="display:flex;gap:0.5rem;">
+                    <button type="button" class="btn-auth-secondary" onclick="resendVerification()" id="resend-btn" style="flex:1;">重新发送</button>
+                    <button type="submit" class="btn-auth-submit" style="flex:2;" id="reg-step2-btn">验证并注册</button>
+                </div>
+                <p style="text-align:center;margin-top:0.75rem;">
+                    <a href="javascript:void(0)" onclick="showLoginModal()" style="color:var(--text-muted);font-size:0.85rem;">已有账号？返回登录</a>
+                </p>
+            </form>
+            
+            <p class="auth-switch" id="reg-switch-link">已有账号？<a href="javascript:void(0)" onclick="showLoginModal(); return false;">返回登录</a></p>
         </div>
     </div>
 </div>

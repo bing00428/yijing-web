@@ -2022,16 +2022,20 @@ function doLogin(e) {
     });
 }
 
-/** 注册表单提交 */
-function doRegister(e) {
+/** 注册步骤 1: 获取验证码 */
+function regStep1(e) {
     if (e) e.preventDefault();
     var username = document.getElementById('reg-username').value.trim();
-    var email = document.getElementById('reg-email').value.trim() || null;
+    var email = document.getElementById('reg-email').value.trim();
     var password = document.getElementById('reg-password').value;
     var password2 = document.getElementById('reg-password2').value;
-
+    
     if (!username || username.length < 2) {
         showAuthError('reg', '用户名至少2个字符');
+        return;
+    }
+    if (!email) {
+        showAuthError('reg', '邮箱不能为空');
         return;
     }
     if (!password || password.length < 4) {
@@ -2042,19 +2046,109 @@ function doRegister(e) {
         showAuthError('reg', '两次输入的密码不一致');
         return;
     }
-
+    
     var btn = e && e.target ? e.target.querySelector('button[type="submit"]') : null;
     if (btn) btn.disabled = true;
     ajax('/api/auth/register', { username: username, password: password, email: email }, function(json) {
         if (btn) btn.disabled = false;
         if (json.success) {
-            hideAuthModal();
-            checkAuthStatus(true);
-            _navigatePendingPage();
+            // 显示步骤 2
+            document.getElementById('reg-step1-form').style.display = 'none';
+            document.getElementById('reg-step2-form').style.display = 'block';
+            document.getElementById('reg-email-display').textContent = email;
+            clearAuthError('reg');
+            // 启动重发倒计时
+            startResendTimer();
         } else {
             showAuthError('reg', json.error || '注册失败');
         }
     });
+}
+
+/** 注册步骤 2: 验证并注册 */
+function regStep2(e) {
+    if (e) e.preventDefault();
+    var username = document.getElementById('reg-username').value.trim();
+    var email = document.getElementById('reg-email').value.trim();
+    var password = document.getElementById('reg-password').value;
+    var code = document.getElementById('reg-code').value.trim();
+    
+    var btn = e && e.target ? e.target.querySelector('button[type="submit"]') : null;
+    if (btn) btn.disabled = true;
+    
+    ajax('/api/auth/verify-email', { username: username, password: password, email: email, code: code }, function(json) {
+        if (btn) btn.disabled = false;
+        if (json.success) {
+            hideAuthModal();
+            checkAuthStatus(true);
+            _navigatePendingPage();
+            // 重置注册表单
+            resetRegisterForm();
+        } else {
+            var errEl = document.getElementById('reg-verify-error');
+            if (errEl) errEl.textContent = json.error || '验证失败';
+        }
+    });
+}
+
+/** 重置注册表单到步骤 1 */
+function resetRegisterForm() {
+    document.getElementById('reg-step1-form').style.display = 'block';
+    document.getElementById('reg-step2-form').style.display = 'none';
+    document.getElementById('reg-username').value = '';
+    document.getElementById('reg-email').value = '';
+    document.getElementById('reg-password').value = '';
+    document.getElementById('reg-password2').value = '';
+    document.getElementById('reg-code').value = '';
+    clearAuthError('reg');
+    var errEl = document.getElementById('reg-verify-error');
+    if (errEl) errEl.textContent = '';
+}
+
+/** 重新发送验证码 */
+function resendVerification() {
+    var email = document.getElementById('reg-email').value.trim();
+    if (!email) return;
+    
+    var btn = document.getElementById('resend-btn');
+    if (btn) btn.disabled = true;
+    
+    ajax('/api/auth/send-verification', { email: email }, function(json) {
+        if (btn) btn.disabled = false;
+        if (json.success) {
+            alert('验证码已重新发送，请检查邮箱');
+            startResendTimer();
+        }
+    });
+}
+
+/** 重发验证码倒计时 */
+var resendTimer = null;
+var resendCountdown = 60;
+function startResendTimer() {
+    if (resendTimer) clearInterval(resendTimer);
+    resendCountdown = 60;
+    var btn = document.getElementById('resend-btn');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = resendCountdown + 's';
+    
+    resendTimer = setInterval(function() {
+        resendCountdown--;
+        if (resendCountdown <= 0) {
+            clearInterval(resendTimer);
+            btn.disabled = false;
+            btn.textContent = '重新发送';
+        } else {
+            btn.textContent = resendCountdown + 's';
+        }
+    }, 1000);
+}
+
+/** 注册表单提交（兼容旧版本，已被 regStep1 取代） */
+function doRegister(e) {
+    if (e) e.preventDefault();
+    regStep1(e);
 }
 
 /** 登出 */
